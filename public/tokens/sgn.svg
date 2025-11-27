@@ -1,0 +1,27 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sgn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6"/>
+      <stop offset="50%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#EC4899"/>
+    </linearGradient>
+    <filter id="sgn-glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="#0B0B0D"/>
+  <circle cx="64" cy="64" r="56" stroke="url(#sgn-grad)" stroke-width="3" fill="none"/>
+  <g filter="url(#sgn-glow)">
+    <!-- S shape -->
+    <path d="M48 45c0-8 8-14 16-14s16 6 16 14c0 12-32 8-32 24 0 8 8 14 16 14s16-6 16-14" 
+          stroke="url(#sgn-grad)" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <!-- Decorative dots -->
+    <circle cx="40" cy="64" r="4" fill="url(#sgn-grad)"/>
+    <circle cx="88" cy="64" r="4" fill="url(#sgn-grad)"/>
+  </g>
+  <text x="64" y="115" text-anchor="middle" fill="#E6E6E6" font-family="Inter" font-size="10" font-weight="600">SGN</text>
+</svg>
