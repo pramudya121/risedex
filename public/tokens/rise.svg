@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rise-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22C55E"/>
+      <stop offset="50%" style="stop-color:#4ADE80"/>
+      <stop offset="100%" style="stop-color:#86EFAC"/>
+    </linearGradient>
+    <filter id="rise-glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="#0B0B0D"/>
+  <circle cx="64" cy="64" r="56" stroke="url(#rise-grad)" stroke-width="3" fill="none"/>
+  <g filter="url(#rise-glow)">
+    <!-- Rising arrow -->
+    <path d="M64 28L84 48H72V70H56V48H44L64 28Z" fill="url(#rise-grad)"/>
+    <!-- Chart bars -->
+    <rect x="36" y="75" width="12" height="25" rx="2" fill="url(#rise-grad)" opacity="0.6"/>
+    <rect x="52" y="65" width="12" height="35" rx="2" fill="url(#rise-grad)" opacity="0.8"/>
+    <rect x="68" y="55" width="12" height="45" rx="2" fill="url(#rise-grad)"/>
+    <rect x="84" y="45" width="12" height="55" rx="2" fill="url(#rise-grad)"/>
+  </g>
+  <text x="64" y="115" text-anchor="middle" fill="#E6E6E6" font-family="Inter" font-size="10" font-weight="600">RISE</text>
+</svg>

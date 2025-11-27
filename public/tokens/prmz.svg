@@ -1,0 +1,24 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="prmz-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9B4DFF"/>
+      <stop offset="50%" style="stop-color:#FF6B9D"/>
+      <stop offset="100%" style="stop-color:#FFD93D"/>
+    </linearGradient>
+    <filter id="prmz-glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="#0B0B0D"/>
+  <circle cx="64" cy="64" r="56" stroke="url(#prmz-grad)" stroke-width="3" fill="none"/>
+  <g filter="url(#prmz-glow)">
+    <path d="M44 40h20c12 0 20 8 20 20s-8 20-20 20H54v16H44V40z" fill="url(#prmz-grad)"/>
+    <path d="M54 50v20h10c6 0 10-4 10-10s-4-10-10-10H54z" fill="#0B0B0D"/>
+  </g>
+  <circle cx="90" cy="86" r="8" fill="#FFD93D"/>
+  <text x="64" y="115" text-anchor="middle" fill="#E6E6E6" font-family="Inter" font-size="10" font-weight="600">PRMZ</text>
+</svg>
