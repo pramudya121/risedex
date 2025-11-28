@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from '@/config/wagmi';
 import { Layout } from '@/components/layout/Layout';
+import { Web3Provider } from '@/providers/Web3Provider';
 
 // Pages
 import Swap from "./pages/Swap";
@@ -21,23 +22,25 @@ const queryClient = new QueryClient();
 const App = () => (
   <WagmiProvider config={wagmiConfig}>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Swap />} />
-              <Route path="/liquidity" element={<Liquidity />} />
-              <Route path="/pools" element={<Pools />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/history" element={<History />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
-      </TooltipProvider>
+      <Web3Provider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Swap />} />
+                <Route path="/liquidity" element={<Liquidity />} />
+                <Route path="/pools" element={<Pools />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/history" element={<History />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Layout>
+          </BrowserRouter>
+        </TooltipProvider>
+      </Web3Provider>
     </QueryClientProvider>
   </WagmiProvider>
 );

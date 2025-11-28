@@ -1,40 +1,116 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAccount } from 'wagmi';
+import { parseUnits, maxUint256, createPublicClient, http, createWalletClient, custom } from 'viem';
 import { useAppStore } from '@/stores/useAppStore';
 import { isNativeETH } from '@/constants/tokens';
+import { CONTRACTS, RISE_TESTNET, ROUTER_ABI, ERC20_ABI } from '@/constants/contracts';
 import { useToast } from '@/hooks/use-toast';
+import { riseTestnet } from '@/config/wagmi';
+
+const publicClient = createPublicClient({
+  chain: riseTestnet,
+  transport: http(),
+});
 
 export const useSwap = () => {
-  const { address } = useAccount();
+  const { address, connector } = useAccount();
   const { swap, addRecentTx, updateTxStatus } = useAppStore();
   const { toast } = useToast();
   const [isApproving, setIsApproving] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [allowance, setAllowance] = useState<bigint>(0n);
 
-  const needsApproval = () => {
+  const routerAddress = CONTRACTS[RISE_TESTNET.id].ROUTER as `0x${string}`;
+  const wethAddress = CONTRACTS[RISE_TESTNET.id].WETH as `0x${string}`;
+
+  // Check allowance on mount and when tokenIn changes
+  useEffect(() => {
+    const checkAllowance = async () => {
+      if (!address || !swap.tokenIn || isNativeETH(swap.tokenIn.address)) {
+        setAllowance(maxUint256);
+        return;
+      }
+
+      try {
+        const result = await (publicClient.readContract as any)({
+          address: swap.tokenIn.address as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'allowance',
+          args: [address, routerAddress],
+        });
+        setAllowance(result as bigint);
+      } catch {
+        setAllowance(0n);
+      }
+    };
+
+    checkAllowance();
+  }, [address, swap.tokenIn, routerAddress]);
+
+  const needsApproval = useCallback(() => {
     if (!swap.tokenIn || !swap.amountIn || isNativeETH(swap.tokenIn.address)) {
       return false;
     }
-    // For demo, assume approval is not needed
-    return false;
-  };
+    
+    try {
+      const amountInWei = parseUnits(swap.amountIn, swap.tokenIn.decimals);
+      return allowance < amountInWei;
+    } catch {
+      return false;
+    }
+  }, [swap.tokenIn, swap.amountIn, allowance]);
 
   const approve = async () => {
-    if (!swap.tokenIn || !address) return;
+    if (!swap.tokenIn || !address || !connector) return;
 
     setIsApproving(true);
     try {
-      // Simulate approval
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const provider = await connector.getProvider();
+      const walletClient = createWalletClient({
+        chain: riseTestnet,
+        transport: custom(provider as any),
+        account: address,
+      });
+
+      const hash = await (walletClient.writeContract as any)({
+        address: swap.tokenIn.address as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [routerAddress, maxUint256],
+      });
+
+      addRecentTx({
+        hash,
+        type: 'approve',
+        status: 'pending',
+        timestamp: Date.now(),
+      });
+
+      toast({
+        title: 'Approval Submitted',
+        description: 'Waiting for confirmation...',
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash });
       
+      // Refresh allowance
+      const newAllowance = await (publicClient.readContract as any)({
+        address: swap.tokenIn.address as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address, routerAddress],
+      });
+      setAllowance(newAllowance as bigint);
+      
+      updateTxStatus(hash, 'success');
       toast({
         title: 'Approval Successful',
-        description: `${swap.tokenIn.symbol} approved for trading`,
+        description: `${swap.tokenIn?.symbol} approved for trading`,
       });
     } catch (error: any) {
       toast({
         title: 'Approval Failed',
-        description: error?.message || 'Transaction rejected',
+        description: error?.shortMessage || error?.message || 'Transaction rejected',
         variant: 'destructive',
       });
     } finally {
@@ -43,33 +119,79 @@ export const useSwap = () => {
   };
 
   const executeSwap = async () => {
-    if (!swap.tokenIn || !swap.tokenOut || !swap.amountIn || !swap.amountOut || !address) {
+    if (!swap.tokenIn || !swap.tokenOut || !swap.amountIn || !swap.amountOut || !address || !connector) {
       return;
     }
 
     setIsSwapping(true);
     try {
-      // Simulate swap transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const provider = await connector.getProvider();
+      const walletClient = createWalletClient({
+        chain: riseTestnet,
+        transport: custom(provider as any),
+        account: address,
+      });
+
+      const amountIn = parseUnits(swap.amountIn, swap.tokenIn.decimals);
+      const amountOutMin = parseUnits(
+        (parseFloat(swap.amountOut) * (1 - swap.slippage / 100)).toFixed(swap.tokenOut.decimals),
+        swap.tokenOut.decimals
+      );
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + swap.deadline * 60);
       
-      const mockHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}` as `0x${string}`;
+      const tokenInAddress = isNativeETH(swap.tokenIn.address) ? wethAddress : swap.tokenIn.address as `0x${string}`;
+      const tokenOutAddress = isNativeETH(swap.tokenOut.address) ? wethAddress : swap.tokenOut.address as `0x${string}`;
+      const path = [tokenInAddress, tokenOutAddress];
+
+      let hash: `0x${string}`;
+
+      if (isNativeETH(swap.tokenIn.address)) {
+        hash = await (walletClient.writeContract as any)({
+          address: routerAddress,
+          abi: ROUTER_ABI,
+          functionName: 'swapExactETHForTokens',
+          args: [amountOutMin, path, address, deadline],
+          value: amountIn,
+        });
+      } else if (isNativeETH(swap.tokenOut.address)) {
+        hash = await (walletClient.writeContract as any)({
+          address: routerAddress,
+          abi: ROUTER_ABI,
+          functionName: 'swapExactTokensForETH',
+          args: [amountIn, amountOutMin, path, address, deadline],
+        });
+      } else {
+        hash = await (walletClient.writeContract as any)({
+          address: routerAddress,
+          abi: ROUTER_ABI,
+          functionName: 'swapExactTokensForTokens',
+          args: [amountIn, amountOutMin, path, address, deadline],
+        });
+      }
 
       addRecentTx({
-        hash: mockHash,
+        hash,
         type: 'swap',
-        status: 'success',
+        status: 'pending',
         timestamp: Date.now(),
       });
 
       toast({
-        title: 'Swap Successful!',
-        description: `Swapped ${swap.amountIn} ${swap.tokenIn.symbol} for ${swap.amountOut} ${swap.tokenOut.symbol}`,
+        title: 'Swap Submitted',
+        description: 'Waiting for confirmation...',
       });
 
+      await publicClient.waitForTransactionReceipt({ hash });
+      updateTxStatus(hash, 'success');
+      
+      toast({
+        title: 'Swap Successful!',
+        description: `Swapped ${swap.amountIn} ${swap.tokenIn?.symbol} for ${swap.amountOut} ${swap.tokenOut?.symbol}`,
+      });
     } catch (error: any) {
       toast({
         title: 'Swap Failed',
-        description: error?.message || 'Transaction rejected',
+        description: error?.shortMessage || error?.message || 'Transaction rejected',
         variant: 'destructive',
       });
     } finally {
@@ -83,5 +205,6 @@ export const useSwap = () => {
     executeSwap,
     isApproving,
     isSwapping,
+    allowance,
   };
 };
