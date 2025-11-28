@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  ArrowDown, 
   Settings, 
   RefreshCw, 
   ChevronDown,
@@ -16,11 +15,13 @@ import { TokenSelector } from './TokenSelector';
 import { SwapSettings } from './SwapSettings';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAccount } from 'wagmi';
+import { useSwap } from '@/hooks/useSwap';
+import { useQuote } from '@/hooks/useQuote';
 import { Token, getTokenLogoFallback } from '@/constants/tokens';
 import { cn } from '@/lib/utils';
 
 export const SwapCard = () => {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const {
     swap,
     setTokenIn,
@@ -33,30 +34,20 @@ export const SwapCard = () => {
 
   const [selectingToken, setSelectingToken] = useState<'in' | 'out' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [priceImpact, setPriceImpact] = useState<number>(0);
-  const [rate, setRate] = useState<string>('');
 
-  // Simulate price fetch
+  const { needsApproval, approve, executeSwap, isApproving, isSwapping } = useSwap();
+  const { amountOut, rate, priceImpact, isLoading } = useQuote({
+    tokenIn: swap.tokenIn,
+    tokenOut: swap.tokenOut,
+    amountIn: swap.amountIn,
+  });
+
+  // Update amountOut when quote changes
   useEffect(() => {
-    if (swap.amountIn && swap.tokenIn && swap.tokenOut) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        // Simulate exchange rate calculation
-        const mockRate = 0.95 + Math.random() * 0.1;
-        const amountOut = (parseFloat(swap.amountIn) * mockRate).toFixed(6);
-        setAmountOut(amountOut);
-        setRate(`1 ${swap.tokenIn.symbol} = ${mockRate.toFixed(4)} ${swap.tokenOut?.symbol}`);
-        setPriceImpact(Math.random() * 2);
-        setIsLoading(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setAmountOut('');
-      setRate('');
-      setPriceImpact(0);
+    if (amountOut) {
+      setAmountOut(amountOut);
     }
-  }, [swap.amountIn, swap.tokenIn, swap.tokenOut]);
+  }, [amountOut, setAmountOut]);
 
   const handleTokenSelect = (token: Token) => {
     if (selectingToken === 'in') {
@@ -68,7 +59,11 @@ export const SwapCard = () => {
   };
 
   const handleSwap = async () => {
-    // Swap implementation
+    if (needsApproval()) {
+      await approve();
+    } else {
+      await executeSwap();
+    }
   };
 
   const getBalance = (token: Token | null) => {
@@ -112,6 +107,16 @@ export const SwapCard = () => {
         )}
       </Button>
     );
+  };
+
+  const getButtonText = () => {
+    if (!isConnected) return 'Connect Wallet';
+    if (!swap.tokenOut) return 'Select Token';
+    if (!swap.amountIn) return 'Enter Amount';
+    if (isApproving) return 'Approving...';
+    if (isSwapping) return 'Swapping...';
+    if (needsApproval()) return `Approve ${swap.tokenIn?.symbol}`;
+    return 'Swap';
   };
 
   return (
@@ -224,11 +229,11 @@ export const SwapCard = () => {
           </div>
 
           {/* Price Info */}
-          {rate && (
+          {rate && swap.tokenIn && swap.tokenOut && (
             <div className="rounded-lg bg-muted/20 p-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Rate</span>
-                <span>{rate}</span>
+                <span>1 {swap.tokenIn.symbol} = {rate} {swap.tokenOut.symbol}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Price Impact</span>
@@ -257,20 +262,13 @@ export const SwapCard = () => {
           {/* Swap Button */}
           <Button
             className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 glow-purple"
-            disabled={!isConnected || !swap.amountIn || !swap.tokenOut || isLoading}
+            disabled={!isConnected || !swap.amountIn || !swap.tokenOut || isLoading || isApproving || isSwapping}
             onClick={handleSwap}
           >
-            {!isConnected ? (
-              'Connect Wallet'
-            ) : !swap.tokenOut ? (
-              'Select Token'
-            ) : !swap.amountIn ? (
-              'Enter Amount'
-            ) : isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              'Swap'
+            {(isApproving || isSwapping) && (
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
             )}
+            {getButtonText()}
           </Button>
         </CardContent>
       </Card>
