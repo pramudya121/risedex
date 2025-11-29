@@ -171,7 +171,7 @@ export const SwapCard = () => {
             </div>
             {swap.tokenIn && (
               <div className="flex gap-2 mt-2">
-                {[25, 50, 75, 100].map((pct) => (
+                {[25, 50, 75].map((pct) => (
                   <Button
                     key={pct}
                     variant="ghost"
@@ -185,6 +185,20 @@ export const SwapCard = () => {
                     {pct}%
                   </Button>
                 ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-primary font-semibold hover:text-primary/80"
+                  onClick={() => {
+                    const bal = parseFloat(getBalance(swap.tokenIn));
+                    // Leave some ETH for gas if native
+                    const isNative = swap.tokenIn.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+                    const amount = isNative ? Math.max(0, bal - 0.01) : bal;
+                    setAmountIn(amount.toString());
+                  }}
+                >
+                  MAX
+                </Button>
               </div>
             )}
           </div>
