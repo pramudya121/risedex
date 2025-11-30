@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react';
-import { parseUnits, formatUnits, createPublicClient, http } from 'viem';
-import { Token, isNativeETH } from '@/constants/tokens';
-import { CONTRACTS, RISE_TESTNET, ROUTER_ABI } from '@/constants/contracts';
-import { riseTestnet } from '@/config/wagmi';
-
-const publicClient = createPublicClient({
-  chain: riseTestnet,
-  transport: http(),
-});
+import { parseUnits, formatUnits } from 'viem';
+import { Token } from '@/constants/tokens';
+import { findBestRoute, RouteResult } from './useMultiHopRouting';
 
 interface UseQuoteParams {
   tokenIn: Token | null;
@@ -21,9 +15,7 @@ export const useQuote = ({ tokenIn, tokenOut, amountIn }: UseQuoteParams) => {
   const [priceImpact, setPriceImpact] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-
-  const routerAddress = CONTRACTS[RISE_TESTNET.id].ROUTER as `0x${string}`;
-  const wethAddress = CONTRACTS[RISE_TESTNET.id].WETH as `0x${string}`;
+  const [route, setRoute] = useState<RouteResult | null>(null);
 
   useEffect(() => {
     const fetchQuote = async () => {
@@ -31,6 +23,7 @@ export const useQuote = ({ tokenIn, tokenOut, amountIn }: UseQuoteParams) => {
         setAmountOut('');
         setRate('');
         setPriceImpact(0);
+        setRoute(null);
         return;
       }
 
@@ -40,38 +33,33 @@ export const useQuote = ({ tokenIn, tokenOut, amountIn }: UseQuoteParams) => {
       try {
         const amountInWei = parseUnits(amountIn, tokenIn.decimals);
         
-        const tokenInAddr = isNativeETH(tokenIn.address) ? wethAddress : tokenIn.address as `0x${string}`;
-        const tokenOutAddr = isNativeETH(tokenOut.address) ? wethAddress : tokenOut.address as `0x${string}`;
-        const path = [tokenInAddr, tokenOutAddr];
+        // Find best route using multi-hop routing
+        const bestRoute = await findBestRoute(tokenIn, tokenOut, amountInWei);
 
-        const amounts = await (publicClient.readContract as any)({
-          address: routerAddress,
-          abi: ROUTER_ABI,
-          functionName: 'getAmountsOut',
-          args: [amountInWei, path],
-        }) as bigint[];
-
-        const outAmount = amounts[amounts.length - 1];
-        const formattedOut = formatUnits(outAmount, tokenOut.decimals);
-        
-        const inAmount = parseFloat(amountIn);
-        const outAmountNum = parseFloat(formattedOut);
-        const rateValue = inAmount > 0 ? (outAmountNum / inAmount).toFixed(6) : '0';
-        
-        // Simplified price impact estimation
-        const impact = Math.min(inAmount * 0.3, 5);
-        
-        setAmountOut(formattedOut);
-        setRate(rateValue);
-        setPriceImpact(impact);
+        if (bestRoute) {
+          const formattedOut = formatUnits(bestRoute.amountOut, tokenOut.decimals);
+          const inAmount = parseFloat(amountIn);
+          const outAmountNum = parseFloat(formattedOut);
+          const rateValue = inAmount > 0 ? (outAmountNum / inAmount).toFixed(6) : '0';
+          
+          setAmountOut(formattedOut);
+          setRate(rateValue);
+          setPriceImpact(bestRoute.priceImpact);
+          setRoute(bestRoute);
+        } else {
+          // No route found
+          setError(new Error('No liquidity available for this pair'));
+          setAmountOut('');
+          setRate('');
+          setPriceImpact(0);
+          setRoute(null);
+        }
       } catch (err) {
-        // Fallback to mock rates if contract call fails
         setError(err as Error);
-        const mockRate = 0.95 + Math.random() * 0.1;
-        const calculatedOut = (parseFloat(amountIn) * mockRate).toFixed(6);
-        setAmountOut(calculatedOut);
-        setRate(mockRate.toFixed(4));
-        setPriceImpact(0.1);
+        setAmountOut('');
+        setRate('');
+        setPriceImpact(0);
+        setRoute(null);
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +67,7 @@ export const useQuote = ({ tokenIn, tokenOut, amountIn }: UseQuoteParams) => {
 
     const debounce = setTimeout(fetchQuote, 300);
     return () => clearTimeout(debounce);
-  }, [tokenIn, tokenOut, amountIn, routerAddress, wethAddress]);
+  }, [tokenIn, tokenOut, amountIn]);
 
   return {
     amountOut,
@@ -87,5 +75,6 @@ export const useQuote = ({ tokenIn, tokenOut, amountIn }: UseQuoteParams) => {
     priceImpact,
     isLoading,
     error,
+    route,
   };
 };
