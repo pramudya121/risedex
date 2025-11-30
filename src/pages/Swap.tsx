@@ -1,7 +1,9 @@
 import { SwapCard } from '@/components/swap/SwapCard';
+import { PriceChart } from '@/components/swap/PriceChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
+import { useQuote } from '@/hooks/useQuote';
 import { useEffect, useState } from 'react';
 
 interface PriceData {
@@ -12,6 +14,11 @@ interface PriceData {
 
 const Swap = () => {
   const { swap } = useAppStore();
+  const { rate } = useQuote({
+    tokenIn: swap.tokenIn,
+    tokenOut: swap.tokenOut,
+    amountIn: '1',
+  });
   const [priceData, setPriceData] = useState<PriceData[]>([
     { symbol: 'ETH', price: 3245.67, change24h: 2.45 },
     { symbol: 'PRMZ', price: 0.0234, change24h: -1.23 },
@@ -38,14 +45,22 @@ const Swap = () => {
 
   return (
     <div className="container px-4 py-8">
-      <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
-        {/* Main Swap Card */}
-        <div className="w-full lg:w-auto flex justify-center">
+      <div className="flex flex-col xl:flex-row gap-8 items-start justify-center">
+        {/* Left Column - Swap Card */}
+        <div className="w-full xl:w-auto flex flex-col gap-6">
           <SwapCard />
+          {/* Price Chart - Below swap on mobile, beside on desktop */}
+          <div className="w-full max-w-md">
+            <PriceChart 
+              tokenIn={swap.tokenIn} 
+              tokenOut={swap.tokenOut} 
+              currentRate={rate}
+            />
+          </div>
         </div>
 
         {/* Live Prices Sidebar */}
-        <Card className="w-full lg:w-80 gradient-card border-border/50">
+        <Card className="w-full xl:w-80 gradient-card border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
