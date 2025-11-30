@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, TrendingUp, Droplets, Plus, ArrowUpDown } from 'lucide-react';
+import { Search, TrendingUp, Droplets, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { TokenLogo } from '@/components/shared/TokenLogo';
 
 interface Pool {
   id: string;
@@ -119,12 +120,8 @@ const Pools = () => {
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex -space-x-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ring-2 ring-background">
-                          <span className="text-xs font-bold">{pool.tokenA.slice(0, 2)}</span>
-                        </div>
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ring-2 ring-background">
-                          <span className="text-xs font-bold">{pool.tokenB.slice(0, 2)}</span>
-                        </div>
+                        <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background" />
+                        <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background" />
                       </div>
                       <span className="font-medium">
                         {pool.tokenA}/{pool.tokenB}
