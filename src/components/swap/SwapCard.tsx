@@ -9,7 +9,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Loader2,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowRight
 } from 'lucide-react';
 import { TokenSelector } from './TokenSelector';
 import { SwapSettings } from './SwapSettings';
@@ -36,7 +37,7 @@ export const SwapCard = () => {
   const [showSettings, setShowSettings] = useState(false);
 
   const { needsApproval, approve, executeSwap, isApproving, isSwapping } = useSwap();
-  const { amountOut, rate, priceImpact, isLoading } = useQuote({
+  const { amountOut, rate, priceImpact, isLoading, route, error: quoteError } = useQuote({
     tokenIn: swap.tokenIn,
     tokenOut: swap.tokenOut,
     amountIn: swap.amountIn,
@@ -62,7 +63,7 @@ export const SwapCard = () => {
     if (needsApproval()) {
       await approve();
     } else {
-      await executeSwap();
+      await executeSwap(route);
     }
   };
 
@@ -113,6 +114,7 @@ export const SwapCard = () => {
     if (!isConnected) return 'Connect Wallet';
     if (!swap.tokenOut) return 'Select Token';
     if (!swap.amountIn) return 'Enter Amount';
+    if (quoteError && parseFloat(swap.amountIn) > 0) return 'No Liquidity';
     if (isApproving) return 'Approving...';
     if (isSwapping) return 'Swapping...';
     if (needsApproval()) return `Approve ${swap.tokenIn?.symbol}`;
@@ -262,6 +264,40 @@ export const SwapCard = () => {
                 <span className="text-muted-foreground">Slippage</span>
                 <span>{swap.slippage}%</span>
               </div>
+              {/* Route Display */}
+              {route && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Route</span>
+                  <div className="flex items-center gap-1">
+                    {route.pathSymbols.map((symbol, index) => (
+                      <span key={index} className="flex items-center gap-1">
+                        <span className={cn(
+                          "font-medium",
+                          route.isMultiHop && index === 1 ? "text-primary" : ""
+                        )}>
+                          {symbol}
+                        </span>
+                        {index < route.pathSymbols.length - 1 && (
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </span>
+                    ))}
+                    {route.isMultiHop && (
+                      <span className="ml-1 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                        Multi-hop
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No Liquidity Warning */}
+          {quoteError && swap.amountIn && parseFloat(swap.amountIn) > 0 && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-warning text-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <span>No liquidity available for this pair</span>
             </div>
           )}
 
@@ -276,7 +312,7 @@ export const SwapCard = () => {
           {/* Swap Button */}
           <Button
             className="w-full h-14 text-lg font-semibold bg-primary hover:bg-primary/90 glow-purple"
-            disabled={!isConnected || !swap.amountIn || !swap.tokenOut || isLoading || isApproving || isSwapping}
+            disabled={!isConnected || !swap.amountIn || !swap.tokenOut || isLoading || isApproving || isSwapping || (quoteError && parseFloat(swap.amountIn || '0') > 0)}
             onClick={handleSwap}
           >
             {(isApproving || isSwapping) && (

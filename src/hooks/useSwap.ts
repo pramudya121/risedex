@@ -6,6 +6,7 @@ import { isNativeETH } from '@/constants/tokens';
 import { CONTRACTS, RISE_TESTNET, ROUTER_ABI, ERC20_ABI } from '@/constants/contracts';
 import { useToast } from '@/hooks/use-toast';
 import { riseTestnet } from '@/config/wagmi';
+import { RouteResult } from './useMultiHopRouting';
 
 const publicClient = createPublicClient({
   chain: riseTestnet,
@@ -118,7 +119,7 @@ export const useSwap = () => {
     }
   };
 
-  const executeSwap = async () => {
+  const executeSwap = async (route?: RouteResult | null) => {
     if (!swap.tokenIn || !swap.tokenOut || !swap.amountIn || !swap.amountOut || !address || !connector) {
       return;
     }
@@ -139,13 +140,24 @@ export const useSwap = () => {
       );
       const deadline = BigInt(Math.floor(Date.now() / 1000) + swap.deadline * 60);
       
-      const tokenInAddress = isNativeETH(swap.tokenIn.address) ? wethAddress : swap.tokenIn.address as `0x${string}`;
-      const tokenOutAddress = isNativeETH(swap.tokenOut.address) ? wethAddress : swap.tokenOut.address as `0x${string}`;
-      const path = [tokenInAddress, tokenOutAddress];
+      // Use the route path if provided, otherwise default to direct path
+      let path: `0x${string}`[];
+      if (route?.path) {
+        path = route.path;
+      } else {
+        const tokenInAddress = isNativeETH(swap.tokenIn.address) ? wethAddress : swap.tokenIn.address as `0x${string}`;
+        const tokenOutAddress = isNativeETH(swap.tokenOut.address) ? wethAddress : swap.tokenOut.address as `0x${string}`;
+        path = [tokenInAddress, tokenOutAddress];
+      }
 
       let hash: `0x${string}`;
 
-      if (isNativeETH(swap.tokenIn.address)) {
+      // Determine which swap function to use based on input/output tokens
+      const isETHIn = isNativeETH(swap.tokenIn.address);
+      const isETHOut = isNativeETH(swap.tokenOut.address);
+
+      if (isETHIn) {
+        // ETH -> Token (possibly multi-hop)
         hash = await (walletClient.writeContract as any)({
           address: routerAddress,
           abi: ROUTER_ABI,
@@ -153,7 +165,8 @@ export const useSwap = () => {
           args: [amountOutMin, path, address, deadline],
           value: amountIn,
         });
-      } else if (isNativeETH(swap.tokenOut.address)) {
+      } else if (isETHOut) {
+        // Token -> ETH (possibly multi-hop)
         hash = await (walletClient.writeContract as any)({
           address: routerAddress,
           abi: ROUTER_ABI,
@@ -161,6 +174,7 @@ export const useSwap = () => {
           args: [amountIn, amountOutMin, path, address, deadline],
         });
       } else {
+        // Token -> Token (possibly multi-hop)
         hash = await (walletClient.writeContract as any)({
           address: routerAddress,
           abi: ROUTER_ABI,
@@ -176,9 +190,13 @@ export const useSwap = () => {
         timestamp: Date.now(),
       });
 
+      const routeInfo = route?.isMultiHop 
+        ? ` via ${route.pathSymbols.join(' → ')}`
+        : '';
+
       toast({
         title: 'Swap Submitted',
-        description: 'Waiting for confirmation...',
+        description: `Swapping${routeInfo}...`,
       });
 
       await publicClient.waitForTransactionReceipt({ hash });
@@ -186,7 +204,7 @@ export const useSwap = () => {
       
       toast({
         title: 'Swap Successful!',
-        description: `Swapped ${swap.amountIn} ${swap.tokenIn?.symbol} for ${swap.amountOut} ${swap.tokenOut?.symbol}`,
+        description: `Swapped ${swap.amountIn} ${swap.tokenIn?.symbol} for ${swap.amountOut} ${swap.tokenOut?.symbol}${routeInfo}`,
       });
     } catch (error: any) {
       toast({
