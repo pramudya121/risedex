@@ -15,6 +15,7 @@ import Pools from "./pages/Pools";
 import Analytics from "./pages/Analytics";
 import Portfolio from "./pages/Portfolio";
 import History from "./pages/History";
+import Token from "./pages/Token";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/history" element={<History />} />
+                <Route path="/token/:address" element={<Token />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, TrendingUp, Droplets, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TokenLogo } from '@/components/shared/TokenLogo';
+import { getTokenBySymbol } from '@/constants/tokens';
 
 interface Pool {
   id: string;
@@ -120,12 +121,22 @@ const Pools = () => {
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex -space-x-2">
-                        <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background" />
-                        <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background" />
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
+                          <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                        </Link>
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
+                          <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                        </Link>
                       </div>
-                      <span className="font-medium">
-                        {pool.tokenA}/{pool.tokenB}
-                      </span>
+                      <div className="flex gap-1">
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+                          {pool.tokenA}
+                        </Link>
+                        <span>/</span>
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+                          {pool.tokenB}
+                        </Link>
+                      </div>
                     </div>
                   </td>
                   <td className="p-4 text-right font-medium">{pool.tvl}</td>
