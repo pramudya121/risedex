@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TokenLogo } from '@/components/shared/TokenLogo';
 import { getTokenByAddress, TOKEN_LIST, type Token as TokenType } from '@/constants/tokens';
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Users, Activity, BarChart3, Copy, Check } from 'lucide-react';
+import { useTokenHolders, useTokenTransfers, useTokenInfo } from '@/hooks/useTokenData';
+import { formatAddress, formatTokenValue, formatRelativeTime } from '@/services/explorerApi';
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Users, Activity, BarChart3, Copy, Check, RefreshCw } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
-// Generate mock price history data
+// Generate mock price history data (real price data requires oracle/DEX APIs)
 const generatePriceHistory = (days: number, basePrice: number, volatility: number) => {
   const data = [];
   let price = basePrice;
@@ -30,30 +33,6 @@ const generatePriceHistory = (days: number, basePrice: number, volatility: numbe
   return data;
 };
 
-// Mock holders data
-const generateHolders = (token: TokenType) => [
-  { address: '0x1234...5678', balance: '1,250,000', percentage: 12.5, rank: 1 },
-  { address: '0x2345...6789', balance: '890,000', percentage: 8.9, rank: 2 },
-  { address: '0x3456...7890', balance: '650,000', percentage: 6.5, rank: 3 },
-  { address: '0x4567...8901', balance: '420,000', percentage: 4.2, rank: 4 },
-  { address: '0x5678...9012', balance: '380,000', percentage: 3.8, rank: 5 },
-  { address: '0x6789...0123', balance: '290,000', percentage: 2.9, rank: 6 },
-  { address: '0x7890...1234', balance: '215,000', percentage: 2.15, rank: 7 },
-  { address: '0x8901...2345', balance: '180,000', percentage: 1.8, rank: 8 },
-];
-
-// Mock transaction history
-const generateTransactions = (token: TokenType) => [
-  { hash: '0xabc...123', type: 'Swap', from: token.symbol, to: 'WETH', amount: '1,500', value: '$2,340', time: '2 mins ago' },
-  { hash: '0xdef...456', type: 'Transfer', from: '0x123...', to: '0x456...', amount: '5,000', value: '$7,800', time: '5 mins ago' },
-  { hash: '0xghi...789', type: 'Swap', from: 'ETH', to: token.symbol, amount: '2,300', value: '$3,588', time: '12 mins ago' },
-  { hash: '0xjkl...012', type: 'Add Liquidity', from: '-', to: '-', amount: '10,000', value: '$15,600', time: '28 mins ago' },
-  { hash: '0xmno...345', type: 'Swap', from: token.symbol, to: 'SOL', amount: '800', value: '$1,248', time: '45 mins ago' },
-  { hash: '0xpqr...678', type: 'Transfer', from: '0x789...', to: '0xabc...', amount: '3,200', value: '$4,992', time: '1 hour ago' },
-  { hash: '0xstu...901', type: 'Remove Liquidity', from: '-', to: '-', amount: '4,500', value: '$7,020', time: '2 hours ago' },
-  { hash: '0xvwx...234', type: 'Swap', from: 'WBTC', to: token.symbol, amount: '6,100', value: '$9,516', time: '3 hours ago' },
-];
-
 type TimeFrame = '7D' | '30D' | '90D' | '1Y';
 
 const TokenPage = () => {
@@ -66,15 +45,17 @@ const TokenPage = () => {
     return getTokenByAddress(address) || TOKEN_LIST[0];
   }, [address]);
 
+  // Fetch real blockchain data
+  const { data: holders, isLoading: holdersLoading, refetch: refetchHolders } = useTokenHolders(token?.address);
+  const { data: transfers, isLoading: transfersLoading, refetch: refetchTransfers } = useTokenTransfers(token?.address);
+  const { data: tokenInfo, isLoading: infoLoading } = useTokenInfo(token?.address);
+
   const priceData = useMemo(() => {
     if (!token) return [];
     const days = timeFrame === '7D' ? 7 : timeFrame === '30D' ? 30 : timeFrame === '90D' ? 90 : 365;
     const basePrice = token.symbol === 'ETH' ? 2100 : token.symbol === 'WBTC' ? 42000 : Math.random() * 10 + 0.5;
     return generatePriceHistory(days, basePrice, 0.03);
   }, [token, timeFrame]);
-
-  const holders = useMemo(() => token ? generateHolders(token) : [], [token]);
-  const transactions = useMemo(() => token ? generateTransactions(token) : [], [token]);
 
   const priceChange = useMemo(() => {
     if (priceData.length < 2) return 0;
@@ -163,8 +144,16 @@ const TokenPage = () => {
         </Card>
         <Card className="bg-card/50 backdrop-blur border-border">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Market Cap</p>
-            <p className="text-xl font-bold">${(currentPrice * 10000000).toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Total Supply</p>
+            {infoLoading ? (
+              <Skeleton className="h-7 w-24 mt-1" />
+            ) : (
+              <p className="text-xl font-bold">
+                {tokenInfo?.totalSupply 
+                  ? formatTokenValue(tokenInfo.totalSupply, token.decimals)
+                  : 'N/A'}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur border-border">
@@ -172,15 +161,27 @@ const TokenPage = () => {
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Users className="h-3 w-3" /> Holders
             </p>
-            <p className="text-xl font-bold">1,247</p>
+            {infoLoading ? (
+              <Skeleton className="h-7 w-16 mt-1" />
+            ) : (
+              <p className="text-xl font-bold">
+                {tokenInfo?.holders ? parseInt(tokenInfo.holders).toLocaleString() : holders?.length || 'N/A'}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-card/50 backdrop-blur border-border">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Activity className="h-3 w-3" /> 24h Volume
+              <Activity className="h-3 w-3" /> Transfers
             </p>
-            <p className="text-xl font-bold">${(Math.random() * 500000 + 100000).toLocaleString()}</p>
+            {infoLoading ? (
+              <Skeleton className="h-7 w-20 mt-1" />
+            ) : (
+              <p className="text-xl font-bold">
+                {tokenInfo?.transferCount ? parseInt(tokenInfo.transferCount).toLocaleString() : transfers?.length || 'N/A'}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -289,98 +290,174 @@ const TokenPage = () => {
 
         <TabsContent value="transactions">
           <Card className="bg-card/50 backdrop-blur border-border">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Tx Hash</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Type</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">From</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">To</th>
-                      <th className="text-right p-4 text-sm font-medium text-muted-foreground">Amount</th>
-                      <th className="text-right p-4 text-sm font-medium text-muted-foreground">Value</th>
-                      <th className="text-right p-4 text-sm font-medium text-muted-foreground">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.map((tx, i) => (
-                      <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                        <td className="p-4">
-                          <a 
-                            href={`https://explorer.testnet.riselabs.xyz/tx/${tx.hash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-sm text-primary hover:underline"
-                          >
-                            {tx.hash}
-                          </a>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant={tx.type === 'Swap' ? 'default' : tx.type === 'Transfer' ? 'secondary' : 'outline'}>
-                            {tx.type}
-                          </Badge>
-                        </td>
-                        <td className="p-4 font-mono text-sm">{tx.from}</td>
-                        <td className="p-4 font-mono text-sm">{tx.to}</td>
-                        <td className="p-4 text-right font-medium">{tx.amount}</td>
-                        <td className="p-4 text-right text-muted-foreground">{tx.value}</td>
-                        <td className="p-4 text-right text-sm text-muted-foreground">{tx.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Recent Transfers</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => refetchTransfers()}
+                  className="h-8"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {transfersLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : transfers && transfers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Tx Hash</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">From</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">To</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transfers.map((tx, i) => (
+                        <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="p-4">
+                            <a 
+                              href={`https://explorer.testnet.riselabs.xyz/tx/${tx.hash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-sm text-primary hover:underline"
+                            >
+                              {formatAddress(tx.hash)}
+                            </a>
+                          </td>
+                          <td className="p-4">
+                            <a 
+                              href={`https://explorer.testnet.riselabs.xyz/address/${tx.from}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-sm hover:text-primary transition-colors"
+                            >
+                              {formatAddress(tx.from)}
+                            </a>
+                          </td>
+                          <td className="p-4">
+                            <a 
+                              href={`https://explorer.testnet.riselabs.xyz/address/${tx.to}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-sm hover:text-primary transition-colors"
+                            >
+                              {formatAddress(tx.to)}
+                            </a>
+                          </td>
+                          <td className="p-4 text-right font-medium">
+                            {formatTokenValue(tx.value, parseInt(tx.tokenDecimal) || token.decimals)} {token.symbol}
+                          </td>
+                          <td className="p-4 text-right text-sm text-muted-foreground">
+                            {formatRelativeTime(tx.timestamp)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No transactions found</p>
+                  <p className="text-sm">Transactions will appear here once available from the explorer</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="holders">
           <Card className="bg-card/50 backdrop-blur border-border">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Rank</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Address</th>
-                      <th className="text-right p-4 text-sm font-medium text-muted-foreground">Balance</th>
-                      <th className="text-right p-4 text-sm font-medium text-muted-foreground">% of Supply</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {holders.map((holder) => (
-                      <tr key={holder.rank} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                        <td className="p-4">
-                          <Badge variant={holder.rank <= 3 ? 'default' : 'outline'}>#{holder.rank}</Badge>
-                        </td>
-                        <td className="p-4">
-                          <a 
-                            href={`https://explorer.testnet.riselabs.xyz/address/${holder.address}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-sm text-primary hover:underline"
-                          >
-                            {holder.address}
-                          </a>
-                        </td>
-                        <td className="p-4 text-right font-medium">{holder.balance} {token.symbol}</td>
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary rounded-full"
-                                style={{ width: `${holder.percentage * 8}%` }}
-                              />
-                            </div>
-                            <span className="text-sm text-muted-foreground">{holder.percentage}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Top Token Holders</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => refetchHolders()}
+                  className="h-8"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {holdersLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : holders && holders.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Rank</th>
+                        <th className="text-left p-4 text-sm font-medium text-muted-foreground">Address</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">Balance</th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">% of Supply</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {holders.map((holder, index) => (
+                        <tr key={index} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="p-4">
+                            <Badge variant={index < 3 ? 'default' : 'outline'}>#{index + 1}</Badge>
+                          </td>
+                          <td className="p-4">
+                            <a 
+                              href={`https://explorer.testnet.riselabs.xyz/address/${holder.address}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-sm text-primary hover:underline"
+                            >
+                              {formatAddress(holder.address)}
+                            </a>
+                          </td>
+                          <td className="p-4 text-right font-medium">
+                            {formatTokenValue(holder.value, token.decimals)} {token.symbol}
+                          </td>
+                          <td className="p-4 text-right">
+                            {holder.percentage !== undefined ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-primary rounded-full"
+                                    style={{ width: `${Math.min(holder.percentage * 2, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm text-muted-foreground">{holder.percentage.toFixed(2)}%</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No holder data available</p>
+                  <p className="text-sm">Holder information will appear here once available from the explorer</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
