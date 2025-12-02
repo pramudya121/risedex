@@ -9,7 +9,8 @@ import {
   Moon,
   Sun,
   X,
-  ChevronDown
+  ChevronDown,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/pools', label: 'Pools', icon: BarChart3 },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/portfolio', label: 'Portfolio', icon: Wallet },
+  { path: '/docs', label: 'Docs', icon: FileText },
 ];
 
 export const Header = () => {
