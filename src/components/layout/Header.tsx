@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import risedexLogo from '@/assets/risedex-logo.png';
 
 const navItems = [
   { path: '/', label: 'Swap', icon: ArrowLeftRight },
@@ -49,9 +50,11 @@ export const Header = () => {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="relative h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center glow-purple-sm">
-            <span className="text-xl font-bold text-primary">R</span>
-          </div>
+          <img 
+            src={risedexLogo} 
+            alt="RISEDEX Logo" 
+            className="h-10 w-10 rounded-lg object-cover"
+          />
           <span className="text-xl font-bold text-foreground hidden sm:block">
             RISE<span className="text-primary">DEX</span>
           </span>
