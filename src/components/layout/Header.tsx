@@ -24,10 +24,13 @@ import {
 import { cn } from '@/lib/utils';
 import risedexLogo from '@/assets/risedex-logo.png';
 
+import { Coins } from 'lucide-react';
+
 const navItems = [
   { path: '/', label: 'Swap', icon: ArrowLeftRight },
   { path: '/liquidity', label: 'Liquidity', icon: Droplets },
   { path: '/pools', label: 'Pools', icon: BarChart3 },
+  { path: '/staking', label: 'Staking', icon: Coins },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/portfolio', label: 'Portfolio', icon: Wallet },
   { path: '/docs', label: 'Docs', icon: FileText },
