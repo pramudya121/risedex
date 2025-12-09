@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,8 @@ import {
   ArrowUpRight,
   Sparkles,
   Lock,
-  Unlock
+  Unlock,
+  RefreshCw
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { formatEther, parseEther } from 'viem';
@@ -35,6 +36,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+const AUTO_REFRESH_INTERVAL = 15000; // 15 seconds
+
 const Staking = () => {
   const { address, isConnected } = useAccount();
   const { fetchPools, stake, unstake, claimRewards, isLoading, isStaking, isUnstaking, isClaiming } = useStaking();
@@ -45,15 +48,49 @@ const Staking = () => {
   const [amount, setAmount] = useState('');
   const [percentage, setPercentage] = useState([0]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch pools on mount and when address changes
   useEffect(() => {
     const loadPools = async () => {
       const data = await fetchPools();
       setPools(data);
+      setLastRefresh(new Date());
     };
     loadPools();
   }, [fetchPools, address]);
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    const autoRefresh = async () => {
+      if (isConnected && !dialogOpen) {
+        setIsAutoRefreshing(true);
+        const data = await fetchPools();
+        setPools(data);
+        setLastRefresh(new Date());
+        setIsAutoRefreshing(false);
+      }
+    };
+
+    intervalRef.current = setInterval(autoRefresh, AUTO_REFRESH_INTERVAL);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [fetchPools, isConnected, dialogOpen]);
+
+  // Manual refresh handler
+  const handleManualRefresh = async () => {
+    setIsAutoRefreshing(true);
+    const data = await fetchPools();
+    setPools(data);
+    setLastRefresh(new Date());
+    setIsAutoRefreshing(false);
+  };
 
   // Calculate total stats
   const totalStakedValue = pools.reduce((sum, p) => sum + Number(formatEther(p.userStaked)), 0);
@@ -208,7 +245,29 @@ const Staking = () => {
         <Card className="gradient-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Staking Pools</span>
+              <div className="flex items-center gap-3">
+                <span>Staking Pools</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleManualRefresh}
+                      disabled={isAutoRefreshing}
+                      className="h-8 w-8 p-0"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isAutoRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Last updated: {lastRefresh.toLocaleTimeString()}</p>
+                    <p className="text-xs text-muted-foreground">Auto-refreshes every 15s</p>
+                  </TooltipContent>
+                </Tooltip>
+                {isAutoRefreshing && (
+                  <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
+                )}
+              </div>
               <Badge variant="outline" className="text-primary border-primary/50">
                 Earn RISE Rewards
               </Badge>
