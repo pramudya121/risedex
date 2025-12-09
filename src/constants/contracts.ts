@@ -25,8 +25,111 @@ export const CONTRACTS = {
     MULTICALL: '0x555E7C02AF2948f2290B023900e9b16C0D581222',
     // UniswapV2Pair contract
     PAIR_ETH_PRMZ: '0xB597213645Ceb9F0E1a2B441B309c65b724D095F',
+    // Farming/Staking contract
+    FARMING: '0xBFB58D76bB20325b1cc44435DA36514537707E40',
   },
 } as const;
+
+// Farming ABI
+export const FARMING_ABI = [
+  {
+    inputs: [
+      { internalType: 'uint256', name: '_pid', type: 'uint256' },
+      { internalType: 'uint256', name: '_amount', type: 'uint256' },
+    ],
+    name: 'deposit',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '_pid', type: 'uint256' },
+      { internalType: 'uint256', name: '_amount', type: 'uint256' },
+    ],
+    name: 'withdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '_pid', type: 'uint256' }],
+    name: 'emergencyWithdraw',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '_pid', type: 'uint256' },
+      { internalType: 'address', name: '_user', type: 'address' },
+    ],
+    name: 'pendingReward',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'poolInfo',
+    outputs: [
+      { internalType: 'contract IERC20', name: 'lpToken', type: 'address' },
+      { internalType: 'uint256', name: 'allocPoint', type: 'uint256' },
+      { internalType: 'uint256', name: 'lastRewardBlock', type: 'uint256' },
+      { internalType: 'uint256', name: 'accRewardPerShare', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'poolLength',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'rewardPerBlock',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'rewardToken',
+    outputs: [{ internalType: 'contract IERC20', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'startBlock',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalAllocPoint',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'address', name: '', type: 'address' },
+    ],
+    name: 'userInfo',
+    outputs: [
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+      { internalType: 'uint256', name: 'rewardDebt', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
 
 // Factory ABI
 export const FACTORY_ABI = [
