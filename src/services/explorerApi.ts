@@ -50,7 +50,81 @@ export const fetchTokenHolders = async (tokenAddress: string): Promise<TokenHold
   }
 };
 
-// Fetch token transfers/transactions
+// Fetch address transactions (all types)
+export interface AddressTransaction {
+  hash: string;
+  blockNumber: string;
+  timestamp: string;
+  from: string;
+  to: string;
+  value: string;
+  gasUsed: string;
+  gasPrice: string;
+  isError: string;
+  methodId: string;
+  functionName: string;
+  input: string;
+}
+
+export const fetchAddressTransactions = async (address: string): Promise<AddressTransaction[]> => {
+  try {
+    const response = await fetch(
+      `${EXPLORER_API_BASE}?module=account&action=txlist&address=${address}&page=1&offset=50&sort=desc`
+    );
+    const data = await response.json();
+    
+    if (data.status === '1' && data.result) {
+      return data.result.map((tx: any) => ({
+        hash: tx.hash,
+        blockNumber: tx.blockNumber,
+        timestamp: tx.timeStamp,
+        from: tx.from,
+        to: tx.to,
+        value: tx.value,
+        gasUsed: tx.gasUsed,
+        gasPrice: tx.gasPrice,
+        isError: tx.isError,
+        methodId: tx.methodId || '',
+        functionName: tx.functionName || '',
+        input: tx.input || '',
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching address transactions:', error);
+    return [];
+  }
+};
+
+// Fetch token transfers for a specific address
+export const fetchAddressTokenTransfers = async (address: string): Promise<TokenTransfer[]> => {
+  try {
+    const response = await fetch(
+      `${EXPLORER_API_BASE}?module=account&action=tokentx&address=${address}&page=1&offset=50&sort=desc`
+    );
+    const data = await response.json();
+    
+    if (data.status === '1' && data.result) {
+      return data.result.map((tx: any) => ({
+        hash: tx.hash,
+        blockNumber: tx.blockNumber,
+        timestamp: tx.timeStamp,
+        from: tx.from,
+        to: tx.to,
+        value: tx.value,
+        tokenSymbol: tx.tokenSymbol,
+        tokenName: tx.tokenName,
+        tokenDecimal: tx.tokenDecimal,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching address token transfers:', error);
+    return [];
+  }
+};
+
+// Fetch token transfers/transactions for a specific token contract
 export const fetchTokenTransfers = async (tokenAddress: string): Promise<TokenTransfer[]> => {
   try {
     const response = await fetch(
