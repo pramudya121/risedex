@@ -18,6 +18,7 @@ import History from "./pages/History";
 import Token from "./pages/Token";
 import Docs from "./pages/Docs";
 import Staking from "./pages/Staking";
+import Watchlist from "./pages/Watchlist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
                 <Route path="/liquidity" element={<Liquidity />} />
                 <Route path="/pools" element={<Pools />} />
                 <Route path="/staking" element={<Staking />} />
+                <Route path="/watchlist" element={<Watchlist />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/history" element={<History />} />
