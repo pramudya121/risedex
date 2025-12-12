@@ -15,7 +15,9 @@ import {
   RefreshCw,
   PieChart as PieChartIcon,
   Coins,
-  Sparkles
+  Sparkles,
+  Bell,
+  Plus
 } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { Link } from 'react-router-dom';
@@ -27,6 +29,9 @@ import { TOKEN_LIST } from '@/constants/tokens';
 import { TokenLogo } from '@/components/shared/TokenLogo';
 import { formatDistanceToNow } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PriceAlertModal } from '@/components/alerts/PriceAlertModal';
+import { PriceAlertsList } from '@/components/alerts/PriceAlertsList';
+import { usePriceAlertStore } from '@/stores/usePriceAlertStore';
 
 const Portfolio = () => {
   const { address, isConnected } = useAccount();
@@ -34,6 +39,8 @@ const Portfolio = () => {
   const { balances, recentTxs } = useAppStore();
   const { positions, isLoading: lpLoading, refetch: refetchLP } = useLPPositions();
   const { refetchBalances, isFetching } = useTokenBalances();
+  const { alerts } = usePriceAlertStore();
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
 
   const copyAddress = () => {
     if (address) {
@@ -223,6 +230,7 @@ const Portfolio = () => {
         <TabsList className="mb-6 bg-muted/30">
           <TabsTrigger value="tokens" className="gap-2"><Wallet className="h-4 w-4" />Tokens</TabsTrigger>
           <TabsTrigger value="liquidity" className="gap-2"><Droplets className="h-4 w-4" />LP ({positions.length})</TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-2"><Bell className="h-4 w-4" />Alerts ({alerts.length})</TabsTrigger>
           <TabsTrigger value="history" className="gap-2"><History className="h-4 w-4" />History</TabsTrigger>
         </TabsList>
 
@@ -330,6 +338,18 @@ const Portfolio = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="alerts">
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setAlertModalOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Alert
+              </Button>
+            </div>
+            <PriceAlertsList />
+          </div>
+        </TabsContent>
+
         <TabsContent value="history">
           <Card className="gradient-card border-border/50">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -363,6 +383,9 @@ const Portfolio = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Price Alert Modal */}
+      <PriceAlertModal open={alertModalOpen} onClose={() => setAlertModalOpen(false)} />
     </div>
   );
 };
