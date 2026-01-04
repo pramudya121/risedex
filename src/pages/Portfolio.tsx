@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppStore } from '@/stores/useAppStore';
 import { useLPPositions } from '@/hooks/useLPPositions';
 import { useTokenBalances } from '@/hooks/useTokenBalances';
+import { usePriceData } from '@/hooks/usePriceData';
 import { TOKEN_LIST } from '@/constants/tokens';
 import { TokenLogo } from '@/components/shared/TokenLogo';
 import { formatDistanceToNow } from 'date-fns';
@@ -39,6 +40,7 @@ const Portfolio = () => {
   const { balances, recentTxs } = useAppStore();
   const { positions, isLoading: lpLoading, refetch: refetchLP } = useLPPositions();
   const { refetchBalances, isFetching } = useTokenBalances();
+  const { prices, getPrice, isLoading: pricesLoading, refetch: refetchPrices } = usePriceData();
   const { alerts } = usePriceAlertStore();
   const [alertModalOpen, setAlertModalOpen] = useState(false);
 
@@ -52,12 +54,8 @@ const Portfolio = () => {
   const handleRefresh = () => {
     refetchBalances();
     refetchLP();
-    toast({ title: 'Refreshing...', description: 'Fetching latest balances' });
-  };
-
-  // Mock prices
-  const mockPrices: Record<string, number> = {
-    ETH: 3200, WETH: 3200, PRMZ: 0.0234, RISE: 0.156, SGN: 0.0089, WBTC: 67000, SOL: 180,
+    refetchPrices();
+    toast({ title: 'Refreshing...', description: 'Fetching latest data from blockchain' });
   };
 
   // Chart colors
@@ -66,29 +64,33 @@ const Portfolio = () => {
     'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--success))'
   ];
 
-  // Get token balances from store
+  // Get token balances from store with real prices
   const tokenBalances = useMemo(() => {
     return TOKEN_LIST.map(token => {
       const balance = balances[token.address.toLowerCase()] || '0';
       const balanceNum = parseFloat(balance);
-      const price = mockPrices[token.symbol] || 0;
+      const price = getPrice(token.symbol);
+      const priceData = prices[token.symbol];
       return {
         ...token,
         balance: balanceNum > 0 ? balanceNum.toLocaleString(undefined, { maximumFractionDigits: 6 }) : '0',
         balanceRaw: balanceNum,
         value: balanceNum * price,
         price,
+        change24h: priceData?.change24h || 0,
       };
     }).filter(t => t.balanceRaw > 0 || t.isNative);
-  }, [balances]);
+  }, [balances, prices, getPrice]);
 
   const totalTokenValue = tokenBalances.reduce((acc, token) => acc + token.value, 0);
   
-  const totalLPValue = positions.reduce((acc, pos) => {
-    const price0 = mockPrices[pos.token0.symbol] || 0;
-    const price1 = mockPrices[pos.token1.symbol] || 0;
-    return acc + (parseFloat(pos.token0Amount) * price0) + (parseFloat(pos.token1Amount) * price1);
-  }, 0);
+  const totalLPValue = useMemo(() => {
+    return positions.reduce((acc, pos) => {
+      const price0 = getPrice(pos.token0.symbol);
+      const price1 = getPrice(pos.token1.symbol);
+      return acc + (parseFloat(pos.token0Amount) * price0) + (parseFloat(pos.token1Amount) * price1);
+    }, 0);
+  }, [positions, getPrice]);
 
   const totalValue = totalTokenValue + totalLPValue;
 
@@ -109,9 +111,21 @@ const Portfolio = () => {
     return data;
   }, [tokenBalances, totalLPValue]);
 
-  // Calculate 24h change (mock)
-  const mockChange24h = 2.45;
-  const valueChange = totalValue * (mockChange24h / 100);
+  // Calculate 24h change based on weighted average of token changes
+  const portfolioChange24h = useMemo(() => {
+    if (totalValue === 0) return 0;
+    const weightedChange = tokenBalances.reduce((acc, token) => {
+      if (token.value > 0) {
+        const weight = token.value / totalValue;
+        return acc + (token.change24h * weight);
+      }
+      return acc;
+    }, 0);
+    return weightedChange;
+  }, [tokenBalances, totalValue]);
+
+  const valueChange = totalValue * (portfolioChange24h / 100);
+  const isLoading = isFetching || pricesLoading;
 
   if (!isConnected) {
     return (
@@ -157,11 +171,11 @@ const Portfolio = () => {
               <div className="text-4xl font-bold text-glow mb-2">
                 ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <div className={`flex items-center gap-1 text-sm ${mockChange24h >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {mockChange24h >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                <span>{mockChange24h >= 0 ? '+' : ''}{mockChange24h.toFixed(2)}%</span>
+              <div className={`flex items-center gap-1 text-sm ${portfolioChange24h >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {portfolioChange24h >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                <span>{portfolioChange24h >= 0 ? '+' : ''}{portfolioChange24h.toFixed(2)}%</span>
                 <span className="text-muted-foreground ml-1">
-                  ({mockChange24h >= 0 ? '+' : ''}${valueChange.toFixed(2)}) 24h
+                  ({portfolioChange24h >= 0 ? '+' : ''}${valueChange.toFixed(2)}) 24h
                 </span>
               </div>
             </CardContent>
@@ -283,8 +297,8 @@ const Portfolio = () => {
               ) : positions.length > 0 ? (
                 <div className="space-y-3">
                   {positions.map((position) => {
-                    const price0 = mockPrices[position.token0.symbol] || 0;
-                    const price1 = mockPrices[position.token1.symbol] || 0;
+                    const price0 = getPrice(position.token0.symbol);
+                    const price1 = getPrice(position.token1.symbol);
                     const posValue = (parseFloat(position.token0Amount) * price0) + (parseFloat(position.token1Amount) * price1);
                     return (
                       <div key={position.pairAddress} className="p-4 rounded-xl bg-muted/20 hover:bg-muted/30 transition-colors">
