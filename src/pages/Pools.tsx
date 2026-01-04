@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, TrendingUp, Droplets, Plus } from 'lucide-react';
+import { Search, TrendingUp, Droplets, Plus, LayoutGrid, List, Sparkles, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TokenLogo } from '@/components/shared/TokenLogo';
 import { getTokenBySymbol } from '@/constants/tokens';
@@ -30,6 +30,7 @@ const mockPools: Pool[] = [
 const Pools = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'tvl' | 'volume' | 'apy'>('tvl');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const filteredPools = mockPools.filter(
     (pool) =>
@@ -39,8 +40,13 @@ const Pools = () => {
 
   return (
     <div className="container px-4 py-8">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="text-xs text-primary font-medium">Earn Fees</span>
+          </div>
           <h1 className="text-3xl font-bold mb-2">Liquidity Pools</h1>
           <p className="text-muted-foreground">
             Explore available pools and add liquidity to earn fees
@@ -57,14 +63,17 @@ const Pools = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total TVL', value: '$45.2M', icon: Droplets },
-          { label: 'Volume (24h)', value: '$12.5M', icon: TrendingUp },
-          { label: 'Total Pools', value: '156', icon: Droplets },
-          { label: 'Fees (24h)', value: '$34.5K', icon: TrendingUp },
+          { label: 'Total TVL', value: '$45.2M', icon: Droplets, color: 'from-purple-500/20 to-pink-500/20' },
+          { label: 'Volume (24h)', value: '$12.5M', icon: TrendingUp, color: 'from-blue-500/20 to-cyan-500/20' },
+          { label: 'Total Pools', value: '156', icon: LayoutGrid, color: 'from-green-500/20 to-emerald-500/20' },
+          { label: 'Fees (24h)', value: '$34.5K', icon: Sparkles, color: 'from-orange-500/20 to-yellow-500/20' },
         ].map((stat) => (
-          <Card key={stat.label} className="gradient-card border-border/50">
-            <CardContent className="pt-6">
-              <stat.icon className="h-5 w-5 text-primary mb-2" />
+          <Card key={stat.label} className="relative overflow-hidden group hover:border-primary/50 transition-all duration-300 bg-gradient-to-br from-background to-muted/30 border-border/50">
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+            <CardContent className="pt-6 relative">
+              <div className="p-2 rounded-lg bg-primary/10 w-fit mb-3">
+                <stat.icon className="h-5 w-5 text-primary" />
+              </div>
               <div className="text-2xl font-bold">{stat.value}</div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>
             </CardContent>
@@ -72,7 +81,7 @@ const Pools = () => {
         ))}
       </div>
 
-      {/* Search and Sort */}
+      {/* Search, Sort and View Toggle */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -96,71 +105,161 @@ const Pools = () => {
             </Button>
           ))}
         </div>
+        <div className="flex gap-1 p-1 bg-muted/30 rounded-lg border border-border/50">
+          <Button
+            variant={viewMode === 'cards' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('cards')}
+            className={viewMode === 'cards' ? 'bg-primary' : ''}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className={viewMode === 'table' ? 'bg-primary' : ''}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Pools Table */}
-      <Card className="gradient-card border-border/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Pool</th>
-                <th className="text-right p-4 text-sm font-medium text-muted-foreground">TVL</th>
-                <th className="text-right p-4 text-sm font-medium text-muted-foreground">Volume (24h)</th>
-                <th className="text-right p-4 text-sm font-medium text-muted-foreground">APY</th>
-                <th className="text-right p-4 text-sm font-medium text-muted-foreground">Fees (24h)</th>
-                <th className="text-right p-4 text-sm font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPools.map((pool) => (
-                <tr
-                  key={pool.id}
-                  className="border-b border-border/30 hover:bg-muted/20 transition-colors"
-                >
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-2">
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
-                          <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
-                        </Link>
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
-                          <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
-                        </Link>
-                      </div>
-                      <div className="flex gap-1">
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+      {/* Cards View */}
+      {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPools.map((pool) => (
+            <Card 
+              key={pool.id} 
+              className="group relative overflow-hidden hover:border-primary/50 transition-all duration-300 bg-gradient-to-br from-background to-muted/20 border-border/50"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardContent className="pt-6 relative">
+                {/* Pool Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                      <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
+                        <TokenLogo symbol={pool.tokenA} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
+                      </Link>
+                      <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
+                        <TokenLogo symbol={pool.tokenB} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
+                      </Link>
+                    </div>
+                    <div>
+                      <div className="flex gap-1 font-semibold">
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="hover:text-primary transition-colors">
                           {pool.tokenA}
                         </Link>
-                        <span>/</span>
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+                        <span className="text-muted-foreground">/</span>
+                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="hover:text-primary transition-colors">
                           {pool.tokenB}
                         </Link>
                       </div>
+                      <div className="text-xs text-muted-foreground">Liquidity Pool</div>
                     </div>
-                  </td>
-                  <td className="p-4 text-right font-medium">{pool.tvl}</td>
-                  <td className="p-4 text-right">{pool.volume24h}</td>
-                  <td className="p-4 text-right">
-                    <Badge variant="secondary" className="bg-success/20 text-success">
-                      {pool.apy}%
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-right text-muted-foreground">{pool.fees24h}</td>
-                  <td className="p-4 text-right">
-                    <Link to="/liquidity">
-                      <Button size="sm" variant="outline" className="border-border/50 hover:border-primary/50">
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <Badge variant="secondary" className="bg-success/20 text-success border-success/30">
+                    {pool.apy}% APY
+                  </Badge>
+                </div>
+
+                {/* Pool Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="p-3 rounded-lg bg-muted/30">
+                    <div className="text-xs text-muted-foreground mb-1">TVL</div>
+                    <div className="font-semibold">{pool.tvl}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/30">
+                    <div className="text-xs text-muted-foreground mb-1">Volume (24h)</div>
+                    <div className="font-semibold">{pool.volume24h}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 mb-4">
+                  <div className="text-sm text-muted-foreground">Fees (24h)</div>
+                  <div className="font-medium text-success">{pool.fees24h}</div>
+                </div>
+
+                {/* Action Button */}
+                <Link to="/liquidity" className="block">
+                  <Button className="w-full gap-2 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/30 hover:border-primary transition-all">
+                    <Plus className="h-4 w-4" />
+                    Add Liquidity
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </Card>
+      )}
+
+      {/* Table View */}
+      {viewMode === 'table' && (
+        <Card className="gradient-card border-border/50 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border/50">
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Pool</th>
+                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">TVL</th>
+                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Volume (24h)</th>
+                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">APY</th>
+                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Fees (24h)</th>
+                  <th className="text-right p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPools.map((pool) => (
+                  <tr
+                    key={pool.id}
+                    className="border-b border-border/30 hover:bg-muted/20 transition-colors"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex -space-x-2">
+                          <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
+                            <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                          </Link>
+                          <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
+                            <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                          </Link>
+                        </div>
+                        <div className="flex gap-1">
+                          <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+                            {pool.tokenA}
+                          </Link>
+                          <span>/</span>
+                          <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
+                            {pool.tokenB}
+                          </Link>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-right font-medium">{pool.tvl}</td>
+                    <td className="p-4 text-right">{pool.volume24h}</td>
+                    <td className="p-4 text-right">
+                      <Badge variant="secondary" className="bg-success/20 text-success">
+                        {pool.apy}%
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right text-muted-foreground">{pool.fees24h}</td>
+                    <td className="p-4 text-right">
+                      <Link to="/liquidity">
+                        <Button size="sm" variant="outline" className="border-border/50 hover:border-primary/50">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
