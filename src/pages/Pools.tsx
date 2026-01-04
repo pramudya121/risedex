@@ -1,42 +1,50 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, TrendingUp, Droplets, Plus, LayoutGrid, List, Sparkles, ArrowUpRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, TrendingUp, Droplets, Plus, LayoutGrid, List, Sparkles, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TokenLogo } from '@/components/shared/TokenLogo';
-import { getTokenBySymbol } from '@/constants/tokens';
+import { usePoolData } from '@/hooks/usePoolData';
 
-interface Pool {
-  id: string;
-  tokenA: string;
-  tokenB: string;
-  tvl: string;
-  volume24h: string;
-  apy: number;
-  fees24h: string;
-}
-
-const mockPools: Pool[] = [
-  { id: '1', tokenA: 'ETH', tokenB: 'PRMZ', tvl: '$2.4M', volume24h: '$567K', apy: 24.5, fees24h: '$1,234' },
-  { id: '2', tokenA: 'ETH', tokenB: 'RISE', tvl: '$1.8M', volume24h: '$345K', apy: 18.2, fees24h: '$890' },
-  { id: '3', tokenA: 'ETH', tokenB: 'SGN', tvl: '$890K', volume24h: '$123K', apy: 32.1, fees24h: '$456' },
-  { id: '4', tokenA: 'ETH', tokenB: 'WBTC', tvl: '$5.6M', volume24h: '$1.2M', apy: 12.4, fees24h: '$3,456' },
-  { id: '5', tokenA: 'ETH', tokenB: 'SOL', tvl: '$1.2M', volume24h: '$234K', apy: 15.8, fees24h: '$678' },
-  { id: '6', tokenA: 'PRMZ', tokenB: 'RISE', tvl: '$456K', volume24h: '$89K', apy: 45.2, fees24h: '$234' },
-];
+const formatCurrency = (value: number) => {
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
+  return `$${value.toFixed(2)}`;
+};
 
 const Pools = () => {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'tvl' | 'volume' | 'apy'>('tvl');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
-  const filteredPools = mockPools.filter(
-    (pool) =>
-      pool.tokenA.toLowerCase().includes(search.toLowerCase()) ||
-      pool.tokenB.toLowerCase().includes(search.toLowerCase())
-  );
+  const { pools, isLoading, totalTVL, totalVolume24h, totalFees24h, totalPools, refetch } = usePoolData();
+
+  const filteredPools = useMemo(() => {
+    let filtered = pools.filter(
+      (pool) =>
+        pool.tokenA.symbol.toLowerCase().includes(search.toLowerCase()) ||
+        pool.tokenB.symbol.toLowerCase().includes(search.toLowerCase())
+    );
+
+    // Sort pools
+    filtered.sort((a, b) => {
+      if (sortBy === 'tvl') return b.tvl - a.tvl;
+      if (sortBy === 'volume') return b.volume24h - a.volume24h;
+      return b.apy - a.apy;
+    });
+
+    return filtered;
+  }, [pools, search, sortBy]);
+
+  const stats = [
+    { label: 'Total TVL', value: formatCurrency(totalTVL), icon: Droplets, color: 'from-purple-500/20 to-pink-500/20' },
+    { label: 'Volume (24h)', value: formatCurrency(totalVolume24h), icon: TrendingUp, color: 'from-blue-500/20 to-cyan-500/20' },
+    { label: 'Total Pools', value: totalPools.toString(), icon: LayoutGrid, color: 'from-green-500/20 to-emerald-500/20' },
+    { label: 'Fees (24h)', value: formatCurrency(totalFees24h), icon: Sparkles, color: 'from-orange-500/20 to-yellow-500/20' },
+  ];
 
   return (
     <div className="container px-4 py-8">
@@ -45,36 +53,40 @@ const Pools = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
             <Sparkles className="h-3 w-3 text-primary" />
-            <span className="text-xs text-primary font-medium">Earn Fees</span>
+            <span className="text-xs text-primary font-medium">Real-time Data</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">Liquidity Pools</h1>
           <p className="text-muted-foreground">
             Explore available pools and add liquidity to earn fees
           </p>
         </div>
-        <Link to="/liquidity">
-          <Button className="gap-2 bg-primary hover:bg-primary/90 glow-purple-sm">
-            <Plus className="h-4 w-4" />
-            New Position
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={refetch} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-        </Link>
+          <Link to="/liquidity">
+            <Button className="gap-2 bg-primary hover:bg-primary/90 glow-purple-sm">
+              <Plus className="h-4 w-4" />
+              New Position
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total TVL', value: '$45.2M', icon: Droplets, color: 'from-purple-500/20 to-pink-500/20' },
-          { label: 'Volume (24h)', value: '$12.5M', icon: TrendingUp, color: 'from-blue-500/20 to-cyan-500/20' },
-          { label: 'Total Pools', value: '156', icon: LayoutGrid, color: 'from-green-500/20 to-emerald-500/20' },
-          { label: 'Fees (24h)', value: '$34.5K', icon: Sparkles, color: 'from-orange-500/20 to-yellow-500/20' },
-        ].map((stat) => (
+        {stats.map((stat) => (
           <Card key={stat.label} className="relative overflow-hidden group hover:border-primary/50 transition-all duration-300 bg-gradient-to-br from-background to-muted/30 border-border/50">
             <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
             <CardContent className="pt-6 relative">
               <div className="p-2 rounded-lg bg-primary/10 w-fit mb-3">
                 <stat.icon className="h-5 w-5 text-primary" />
               </div>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-24 mb-1" />
+              ) : (
+                <div className="text-2xl font-bold">{stat.value}</div>
+              )}
               <div className="text-sm text-muted-foreground">{stat.label}</div>
             </CardContent>
           </Card>
@@ -125,8 +137,23 @@ const Pools = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && pools.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="border-border/50">
+              <CardContent className="pt-6">
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-20 w-full mb-4" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Cards View */}
-      {viewMode === 'cards' && (
+      {viewMode === 'cards' && !isLoading && filteredPools.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPools.map((pool) => (
             <Card 
@@ -139,28 +166,28 @@ const Pools = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex -space-x-2">
-                      <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
-                        <TokenLogo symbol={pool.tokenA} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
+                      <Link to={`/token/${pool.tokenA.address}`}>
+                        <TokenLogo symbol={pool.tokenA.symbol} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
                       </Link>
-                      <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
-                        <TokenLogo symbol={pool.tokenB} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
+                      <Link to={`/token/${pool.tokenB.address}`}>
+                        <TokenLogo symbol={pool.tokenB.symbol} size="lg" className="ring-2 ring-background hover:ring-primary transition-all" />
                       </Link>
                     </div>
                     <div>
                       <div className="flex gap-1 font-semibold">
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="hover:text-primary transition-colors">
-                          {pool.tokenA}
+                        <Link to={`/token/${pool.tokenA.address}`} className="hover:text-primary transition-colors">
+                          {pool.tokenA.symbol}
                         </Link>
                         <span className="text-muted-foreground">/</span>
-                        <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="hover:text-primary transition-colors">
-                          {pool.tokenB}
+                        <Link to={`/token/${pool.tokenB.address}`} className="hover:text-primary transition-colors">
+                          {pool.tokenB.symbol}
                         </Link>
                       </div>
                       <div className="text-xs text-muted-foreground">Liquidity Pool</div>
                     </div>
                   </div>
                   <Badge variant="secondary" className="bg-success/20 text-success border-success/30">
-                    {pool.apy}% APY
+                    {pool.apy.toFixed(1)}% APY
                   </Badge>
                 </div>
 
@@ -168,17 +195,29 @@ const Pools = () => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="p-3 rounded-lg bg-muted/30">
                     <div className="text-xs text-muted-foreground mb-1">TVL</div>
-                    <div className="font-semibold">{pool.tvl}</div>
+                    <div className="font-semibold">{formatCurrency(pool.tvl)}</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/30">
                     <div className="text-xs text-muted-foreground mb-1">Volume (24h)</div>
-                    <div className="font-semibold">{pool.volume24h}</div>
+                    <div className="font-semibold">{formatCurrency(pool.volume24h)}</div>
+                  </div>
+                </div>
+
+                {/* Reserves Info */}
+                <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                  <div className="p-2 rounded bg-muted/20">
+                    <span className="text-muted-foreground">{pool.tokenA.symbol}: </span>
+                    <span className="font-mono">{parseFloat(pool.reserve0Formatted).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                  </div>
+                  <div className="p-2 rounded bg-muted/20">
+                    <span className="text-muted-foreground">{pool.tokenB.symbol}: </span>
+                    <span className="font-mono">{parseFloat(pool.reserve1Formatted).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 mb-4">
                   <div className="text-sm text-muted-foreground">Fees (24h)</div>
-                  <div className="font-medium text-success">{pool.fees24h}</div>
+                  <div className="font-medium text-success">{formatCurrency(pool.fees24h)}</div>
                 </div>
 
                 {/* Action Button */}
@@ -195,8 +234,24 @@ const Pools = () => {
         </div>
       )}
 
+      {/* Empty State */}
+      {!isLoading && filteredPools.length === 0 && (
+        <Card className="border-border/50">
+          <CardContent className="py-12 text-center">
+            <Droplets className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Pools Found</h3>
+            <p className="text-muted-foreground mb-4">
+              {search ? `No pools match "${search}"` : 'No liquidity pools available yet'}
+            </p>
+            <Link to="/liquidity">
+              <Button>Create First Pool</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Table View */}
-      {viewMode === 'table' && (
+      {viewMode === 'table' && !isLoading && filteredPools.length > 0 && (
         <Card className="gradient-card border-border/50 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -219,32 +274,32 @@ const Pools = () => {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="flex -space-x-2">
-                          <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`}>
-                            <TokenLogo symbol={pool.tokenA} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                          <Link to={`/token/${pool.tokenA.address}`}>
+                            <TokenLogo symbol={pool.tokenA.symbol} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
                           </Link>
-                          <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`}>
-                            <TokenLogo symbol={pool.tokenB} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
+                          <Link to={`/token/${pool.tokenB.address}`}>
+                            <TokenLogo symbol={pool.tokenB.symbol} size="md" className="ring-2 ring-background hover:ring-primary transition-all" />
                           </Link>
                         </div>
                         <div className="flex gap-1">
-                          <Link to={`/token/${getTokenBySymbol(pool.tokenA)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
-                            {pool.tokenA}
+                          <Link to={`/token/${pool.tokenA.address}`} className="font-medium hover:text-primary transition-colors">
+                            {pool.tokenA.symbol}
                           </Link>
                           <span>/</span>
-                          <Link to={`/token/${getTokenBySymbol(pool.tokenB)?.address || ''}`} className="font-medium hover:text-primary transition-colors">
-                            {pool.tokenB}
+                          <Link to={`/token/${pool.tokenB.address}`} className="font-medium hover:text-primary transition-colors">
+                            {pool.tokenB.symbol}
                           </Link>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-right font-medium">{pool.tvl}</td>
-                    <td className="p-4 text-right">{pool.volume24h}</td>
+                    <td className="p-4 text-right font-medium">{formatCurrency(pool.tvl)}</td>
+                    <td className="p-4 text-right">{formatCurrency(pool.volume24h)}</td>
                     <td className="p-4 text-right">
                       <Badge variant="secondary" className="bg-success/20 text-success">
-                        {pool.apy}%
+                        {pool.apy.toFixed(1)}%
                       </Badge>
                     </td>
-                    <td className="p-4 text-right text-muted-foreground">{pool.fees24h}</td>
+                    <td className="p-4 text-right text-muted-foreground">{formatCurrency(pool.fees24h)}</td>
                     <td className="p-4 text-right">
                       <Link to="/liquidity">
                         <Button size="sm" variant="outline" className="border-border/50 hover:border-primary/50">

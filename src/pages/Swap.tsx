@@ -14,9 +14,9 @@ const Swap = () => {
   });
 
   return (
-    <div className="container px-4 py-8">
+    <div className="container px-4 py-8 max-w-6xl mx-auto">
       {/* Hero Section */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm text-primary font-medium">Instant Token Swaps</span>
@@ -31,15 +31,15 @@ const Swap = () => {
         </p>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
-        {/* Swap Card */}
-        <div className="w-full lg:w-auto">
+      {/* Main Content - Centered */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
+        {/* Swap Card - Primary */}
+        <div className="w-full max-w-md mx-auto lg:mx-0">
           <SwapCard />
         </div>
 
-        {/* Price Chart */}
-        <div className="w-full lg:w-[420px]">
+        {/* Price Chart - Secondary */}
+        <div className="w-full max-w-md mx-auto lg:mx-0">
           <PriceChart 
             tokenIn={swap.tokenIn} 
             tokenOut={swap.tokenOut} 
@@ -49,56 +49,34 @@ const Swap = () => {
       </div>
 
       {/* Features Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 max-w-4xl mx-auto">
         {[
-          { 
-            icon: Zap, 
-            label: 'Lightning Fast', 
-            value: '<1s',
-            description: 'Average swap time'
-          },
-          { 
-            icon: Shield, 
-            label: 'Secure', 
-            value: '100%',
-            description: 'Non-custodial trades'
-          },
-          { 
-            icon: Clock, 
-            label: '24h Volume', 
-            value: '$12.5M',
-            description: 'Total traded'
-          },
-          { 
-            icon: Sparkles, 
-            label: 'Total Pools', 
-            value: '156',
-            description: 'Active pairs'
-          },
+          { icon: Zap, label: 'Lightning Fast', value: '<1s', description: 'Average swap time' },
+          { icon: Shield, label: 'Secure', value: '100%', description: 'Non-custodial trades' },
+          { icon: Clock, label: '24h Volume', value: '$12.5M', description: 'Total traded' },
+          { icon: Sparkles, label: 'Total Pools', value: '156', description: 'Active pairs' },
         ].map((stat) => (
           <Card 
             key={stat.label} 
             className="relative overflow-hidden group hover:border-primary/50 transition-all duration-300 bg-gradient-to-br from-background to-muted/30 border-border/50"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="pt-6 relative">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <stat.icon className="h-5 w-5 text-primary" />
+            <CardContent className="pt-5 pb-4 relative">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <stat.icon className="h-4 w-4 text-primary" />
                 </div>
-                <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
+                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
               </div>
-              <div className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                {stat.value}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">{stat.description}</div>
+              <div className="text-xl font-bold">{stat.value}</div>
+              <div className="text-xs text-muted-foreground">{stat.description}</div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Trust Indicators */}
-      <div className="flex flex-wrap justify-center gap-6 mt-12 text-sm text-muted-foreground">
+      <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
           <span>Network Status: Operational</span>
