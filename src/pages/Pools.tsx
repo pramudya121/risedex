@@ -249,7 +249,7 @@ const Pools = () => {
           <Button variant="outline" size="icon" onClick={refetch} disabled={isLoading} className="border-border/50">
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-          <Link to="/liquidity">
+          <Link to="/create-pool">
             <Button className="gap-2 bg-primary hover:bg-primary/90 glow-purple-sm">
               <Plus className="h-4 w-4" />
               Create Pool
@@ -365,14 +365,16 @@ const Pools = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-border/50 hover:border-primary/50"
-                  >
-                    <Info className="h-4 w-4 mr-1" />
-                    Details
-                  </Button>
+                  <Link to={`/pool/${pool.pairAddress}`} className="flex-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-border/50 hover:border-primary/50"
+                    >
+                      <Info className="h-4 w-4 mr-1" />
+                      Details
+                    </Button>
+                  </Link>
                   <Link to="/liquidity" className="flex-1">
                     <Button className="w-full gap-1 bg-primary hover:bg-primary/90" size="sm">
                       <Plus className="h-4 w-4" />
@@ -395,7 +397,7 @@ const Pools = () => {
             <p className="text-muted-foreground mb-6">
               {search ? `No pools match "${search}"` : 'No liquidity pools available yet'}
             </p>
-            <Link to="/liquidity">
+            <Link to="/create-pool">
               <Button className="gap-2 bg-primary hover:bg-primary/90">
                 <Plus className="h-4 w-4" />
                 Create First Pool

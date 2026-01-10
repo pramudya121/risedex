@@ -12,6 +12,8 @@ import { Web3Provider } from '@/providers/Web3Provider';
 import Swap from "./pages/Swap";
 import Liquidity from "./pages/Liquidity";
 import Pools from "./pages/Pools";
+import PoolDetail from "./pages/PoolDetail";
+import CreatePool from "./pages/CreatePool";
 import Analytics from "./pages/Analytics";
 import Portfolio from "./pages/Portfolio";
 import History from "./pages/History";
@@ -35,6 +37,8 @@ const App = () => (
                 <Route path="/" element={<Swap />} />
                 <Route path="/liquidity" element={<Liquidity />} />
                 <Route path="/pools" element={<Pools />} />
+                <Route path="/pool/:pairAddress" element={<PoolDetail />} />
+                <Route path="/create-pool" element={<CreatePool />} />
                 <Route path="/staking" element={<Staking />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/portfolio" element={<Portfolio />} />
