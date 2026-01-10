@@ -21,6 +21,7 @@ export interface PairInfo {
   token1: `0x${string}`;
   totalSupply: bigint;
   userLpBalance: bigint;
+  lpAllowance: bigint; // Track LP token allowance
 }
 
 export const useLiquidity = () => {
@@ -33,6 +34,7 @@ export const useLiquidity = () => {
   const [isAddingLiquidity, setIsAddingLiquidity] = useState(false);
   const [isRemovingLiquidity, setIsRemovingLiquidity] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isApprovingLp, setIsApprovingLp] = useState(false);
   const [pairInfo, setPairInfo] = useState<PairInfo | null>(null);
 
   const chainId = RISE_TESTNET.id;
@@ -64,20 +66,26 @@ export const useLiquidity = () => {
     if (!pairAddress) { setPairInfo(null); return; }
 
     try {
-      const [reserves, token0, token1, totalSupply, userLpBalance] = await Promise.all([
+      const [reserves, token0, token1, totalSupply, userLpBalance, lpAllowance] = await Promise.all([
         (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'getReserves' }),
         (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'token0' }),
         (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'token1' }),
         (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'totalSupply' }),
         (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'balanceOf', args: [address] }),
+        (publicClient.readContract as any)({ address: pairAddress, abi: PAIR_ABI, functionName: 'allowance', args: [address, routerAddress] }),
       ]);
       setPairInfo({
-        pairAddress, reserve0: reserves[0], reserve1: reserves[1],
-        token0: token0 as `0x${string}`, token1: token1 as `0x${string}`,
-        totalSupply: totalSupply as bigint, userLpBalance: userLpBalance as bigint,
+        pairAddress, 
+        reserve0: reserves[0], 
+        reserve1: reserves[1],
+        token0: token0 as `0x${string}`, 
+        token1: token1 as `0x${string}`,
+        totalSupply: totalSupply as bigint, 
+        userLpBalance: userLpBalance as bigint,
+        lpAllowance: lpAllowance as bigint,
       });
     } catch { setPairInfo(null); }
-  }, [address, getPairAddress]);
+  }, [address, getPairAddress, routerAddress]);
 
   const checkAllowance = useCallback(async (token: Token, amount: string): Promise<boolean> => {
     if (!address || isNativeETH(token.address)) return true;
@@ -91,6 +99,17 @@ export const useLiquidity = () => {
       return (allowance as bigint) >= parseUnits(amount || '0', token.decimals);
     } catch { return false; }
   }, [address, routerAddress]);
+
+  // Check if LP token needs approval for a given amount
+  const checkLpAllowance = useCallback((lpAmount: string): boolean => {
+    if (!pairInfo) return true; // Needs approval if no pair info
+    try {
+      const amountBigInt = parseUnits(lpAmount, 18);
+      return pairInfo.lpAllowance >= amountBigInt;
+    } catch {
+      return false;
+    }
+  }, [pairInfo]);
 
   const approveToken = useCallback(async (token: Token) => {
     if (!walletClient || !address || isNativeETH(token.address)) return;
@@ -150,20 +169,33 @@ export const useLiquidity = () => {
     } finally { setIsAddingLiquidity(false); }
   }, [walletClient, address, routerAddress, toast, addRecentTx, updateTxStatus, refetchBalances]);
 
-  const approveLpToken = useCallback(async (pairAddress: `0x${string}`) => {
-    if (!walletClient || !address) return;
-    setIsApproving(true);
+  const approveLpToken = useCallback(async (pairAddress: `0x${string}`): Promise<boolean> => {
+    if (!walletClient || !address) return false;
+    setIsApprovingLp(true);
     try {
       const hash = await (walletClient.writeContract as any)({
         address: pairAddress, abi: PAIR_ABI, functionName: 'approve',
         args: [routerAddress, maxUint256], chain: riseTestnet,
       });
+      toast({ title: 'Approving LP Token', description: 'Please wait...' });
+      addRecentTx({ hash, type: 'approve', status: 'pending', timestamp: Date.now() });
       await publicClient.waitForTransactionReceipt({ hash });
-      toast({ title: 'LP Token Approved' });
+      updateTxStatus(hash, 'success');
+      toast({ title: 'LP Token Approved', description: 'You can now remove liquidity' });
+      
+      // Update the pairInfo with new allowance
+      if (pairInfo) {
+        setPairInfo({
+          ...pairInfo,
+          lpAllowance: maxUint256,
+        });
+      }
+      return true;
     } catch (e: any) {
       toast({ title: 'Approval Failed', description: e.message, variant: 'destructive' });
-    } finally { setIsApproving(false); }
-  }, [walletClient, address, routerAddress, toast]);
+      return false;
+    } finally { setIsApprovingLp(false); }
+  }, [walletClient, address, routerAddress, toast, addRecentTx, updateTxStatus, pairInfo]);
 
   const removeLiquidityETH = useCallback(async (token: Token, lpAmount: string) => {
     if (!walletClient || !address) return;
@@ -175,7 +207,7 @@ export const useLiquidity = () => {
         args: [token.address as `0x${string}`, parseUnits(lpAmount, 18), 0n, 0n, address, deadline],
         chain: riseTestnet,
       });
-      toast({ title: 'Removing Liquidity' });
+      toast({ title: 'Removing Liquidity', description: 'Transaction submitted...' });
       addRecentTx({ hash, type: 'removeLiquidity', status: 'pending', timestamp: Date.now() });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       updateTxStatus(hash, receipt.status === 'success' ? 'success' : 'failed');
@@ -187,8 +219,18 @@ export const useLiquidity = () => {
   }, [walletClient, address, routerAddress, toast, addRecentTx, updateTxStatus, refetchBalances]);
 
   return {
-    isAddingLiquidity, isRemovingLiquidity, isApproving, pairInfo,
-    getPairAddress, fetchPairInfo, checkAllowance, approveToken,
-    addLiquidity, approveLpToken, removeLiquidityETH,
+    isAddingLiquidity, 
+    isRemovingLiquidity, 
+    isApproving, 
+    isApprovingLp,
+    pairInfo,
+    getPairAddress, 
+    fetchPairInfo, 
+    checkAllowance, 
+    checkLpAllowance,
+    approveToken,
+    addLiquidity, 
+    approveLpToken, 
+    removeLiquidityETH,
   };
 };
