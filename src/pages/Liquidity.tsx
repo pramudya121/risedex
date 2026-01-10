@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
-import { Plus, Minus, ChevronDown, Droplets, Loader2 } from 'lucide-react';
+import { Plus, Minus, ChevronDown, Droplets, Loader2, CheckCircle } from 'lucide-react';
 import { TokenSelector } from '@/components/swap/TokenSelector';
 import { Token, TOKEN_LIST, NATIVE_ETH, getTokenLogoFallback, isNativeETH } from '@/constants/tokens';
 import { useAccount } from 'wagmi';
@@ -19,9 +19,11 @@ const Liquidity = () => {
     isAddingLiquidity,
     isRemovingLiquidity,
     isApproving,
+    isApprovingLp,
     pairInfo,
     fetchPairInfo,
     checkAllowance,
+    checkLpAllowance,
     approveToken,
     addLiquidity,
     approveLpToken,
@@ -109,22 +111,39 @@ const Liquidity = () => {
     setAmountB('');
   };
 
+  // Calculate LP amount to remove
+  const lpAmountToRemove = pairInfo 
+    ? formatUnits((pairInfo.userLpBalance * BigInt(removePercent[0])) / 100n, 18)
+    : '0';
+
+  // Check if LP needs approval
+  const needsLpApproval = pairInfo && pairInfo.userLpBalance > 0n 
+    ? !checkLpAllowance(lpAmountToRemove)
+    : false;
+
+  // Handle approve LP token
+  const handleApproveLp = async () => {
+    if (!pairInfo?.pairAddress) return;
+    await approveLpToken(pairInfo.pairAddress);
+  };
+
   // Handle remove liquidity
   const handleRemoveLiquidity = async () => {
     if (!pairInfo || !tokenB) return;
 
-    const lpAmount = formatUnits(
-      (pairInfo.userLpBalance * BigInt(removePercent[0])) / 100n,
-      18
-    );
-
-    // Check if LP token needs approval
-    if (pairInfo.pairAddress) {
-      await approveLpToken(pairInfo.pairAddress);
+    // If LP needs approval, approve first
+    if (needsLpApproval && pairInfo.pairAddress) {
+      const approved = await approveLpToken(pairInfo.pairAddress);
+      if (!approved) return;
     }
 
     // Remove liquidity
-    await removeLiquidityETH(tokenB, lpAmount);
+    await removeLiquidityETH(tokenB, lpAmountToRemove);
+    
+    // Refetch pair info to update allowance
+    if (tokenA && tokenB) {
+      fetchPairInfo(tokenA, tokenB);
+    }
   };
 
   // Calculate pool share and LP tokens
@@ -140,6 +159,14 @@ const Liquidity = () => {
     if (needsApprovalB && tokenB && !isNativeETH(tokenB.address)) return `Approve ${tokenB.symbol}`;
     if (!amountA || !amountB) return 'Enter Amounts';
     return 'Add Liquidity';
+  };
+
+  const getRemoveButtonText = () => {
+    if (!isConnected) return 'Connect Wallet';
+    if (isApprovingLp) return 'Approving LP...';
+    if (isRemovingLiquidity) return 'Removing...';
+    if (needsLpApproval) return 'Approve & Remove';
+    return 'Remove Liquidity';
   };
 
   return (
@@ -322,7 +349,7 @@ const Liquidity = () => {
                       {removePercent[0]}%
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {parseFloat(formatUnits((pairInfo.userLpBalance * BigInt(removePercent[0])) / 100n, 18)).toFixed(6)} LP tokens
+                      {parseFloat(lpAmountToRemove).toFixed(6)} LP tokens
                     </p>
                   </div>
 
@@ -354,17 +381,30 @@ const Liquidity = () => {
                       <span className="text-muted-foreground">Your LP Balance</span>
                       <span>{parseFloat(formatUnits(pairInfo.userLpBalance, 18)).toFixed(6)}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">LP Approval Status</span>
+                      <span className="flex items-center gap-1">
+                        {needsLpApproval ? (
+                          <span className="text-warning">Needs Approval</span>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-success" />
+                            <span className="text-success">Approved</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
                   </div>
 
                   <Button
                     className="w-full h-12 font-semibold bg-destructive hover:bg-destructive/90"
-                    disabled={!isConnected || isRemovingLiquidity}
+                    disabled={!isConnected || isRemovingLiquidity || isApprovingLp}
                     onClick={handleRemoveLiquidity}
                   >
-                    {isRemovingLiquidity && (
+                    {(isRemovingLiquidity || isApprovingLp) && (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     )}
-                    {isRemovingLiquidity ? 'Removing...' : 'Remove Liquidity'}
+                    {getRemoveButtonText()}
                   </Button>
                 </>
               ) : (
