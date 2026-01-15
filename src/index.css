@@ -188,6 +188,75 @@
   }
 }
 
+/* Marquee animation */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+.animate-marquee {
+  animation: marquee var(--duration) linear infinite;
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration) linear infinite;
+}
+
+/* Slide animation for shimmer */
+@keyframes slide {
+  to {
+    transform: translateX(calc(100cqw - 100%));
+  }
+}
+
+.animate-slide {
+  animation: slide var(--shimmer-duration, 2s) ease-in-out infinite;
+}
+
+/* Spin around animation */
+@keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+  }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+  }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+  }
+  100% {
+    transform: translateZ(0) rotate(360deg);
+  }
+}
+
+.animate-spin-around {
+  animation: spin-around calc(var(--shimmer-duration, 2s) * 2) infinite ease;
+}
+
+/* Border beam animation */
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam var(--duration) infinite linear;
+}
+
 /* Abstract background pattern */
 .abstract-bg {
   position: relative;
@@ -219,4 +288,14 @@
   66% {
     transform: translate(-1%, 1%) rotate(-1deg);
   }
+}
+
+/* Perspective utility */
+.perspective-\[1000px\] {
+  perspective: 1000px;
+}
+
+/* Direction reverse for marquee */
+.direction-reverse {
+  animation-direction: reverse;
 }
