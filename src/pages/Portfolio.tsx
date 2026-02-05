@@ -33,6 +33,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PriceAlertModal } from '@/components/alerts/PriceAlertModal';
 import { PriceAlertsList } from '@/components/alerts/PriceAlertsList';
 import { usePriceAlertStore } from '@/stores/usePriceAlertStore';
+ import { BorderBeam } from '@/components/magicui/border-beam';
+ import { NumberTicker } from '@/components/magicui/number-ticker';
 
 const Portfolio = () => {
   const { address, isConnected } = useAccount();
@@ -162,7 +164,8 @@ const Portfolio = () => {
           </div>
           
           {/* Total Value Card */}
-          <Card className="gradient-card border-border/50">
+           <Card className="gradient-card border-border/50 relative overflow-hidden">
+             <BorderBeam size={200} duration={12} delay={0} />
             <CardContent className="pt-6 pb-6">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-4 w-4 text-primary" />
@@ -225,15 +228,19 @@ const Portfolio = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Token Value', value: `$${totalTokenValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, icon: Coins, color: 'text-primary' },
-          { label: 'LP Value', value: `$${totalLPValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, icon: Droplets, color: 'text-chart-2' },
-          { label: 'LP Positions', value: positions.length.toString(), icon: TrendingUp, color: 'text-chart-3' },
-          { label: 'Transactions', value: recentTxs.length.toString(), icon: History, color: 'text-chart-4' },
+           { label: 'Token Value', value: totalTokenValue, isCurrency: true, icon: Coins, color: 'text-primary' },
+           { label: 'LP Value', value: totalLPValue, isCurrency: true, icon: Droplets, color: 'text-chart-2' },
+           { label: 'LP Positions', value: positions.length, isCurrency: false, icon: TrendingUp, color: 'text-chart-3' },
+           { label: 'Transactions', value: recentTxs.length, isCurrency: false, icon: History, color: 'text-chart-4' },
         ].map((stat) => (
-          <Card key={stat.label} className="gradient-card border-border/50">
+           <Card key={stat.label} className="gradient-card border-border/50 relative overflow-hidden group hover:border-primary/30 transition-colors">
+             <BorderBeam size={100} duration={10} delay={0} />
             <CardContent className="pt-4 pb-4">
-              <stat.icon className={`h-4 w-4 ${stat.color} mb-1`} />
-              <div className="text-xl font-bold">{stat.value}</div>
+               <stat.icon className={`h-4 w-4 ${stat.color} mb-1 group-hover:scale-110 transition-transform`} />
+               <div className="text-xl font-bold">
+                 {stat.isCurrency && '$'}
+                 <NumberTicker value={stat.value} />
+               </div>
               <div className="text-xs text-muted-foreground">{stat.label}</div>
             </CardContent>
           </Card>

@@ -1,7 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Github, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
+ import { Button } from "@/components/ui/button";
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+ import { Download, Github, ExternalLink, ArrowLeftRight, Droplets, BarChart3, Wallet, Shield, Zap, Rocket, Target, Users, Globe, Code, CheckCircle } from "lucide-react";
+ import { toast } from "sonner";
+ import { HoverEffect } from "@/components/aceternity/hover-effect";
+ import { TextGenerateEffect } from "@/components/aceternity/text-generate-effect";
+ import { motion } from "framer-motion";
 
 const Docs = () => {
   const handleDownload = () => {
@@ -600,7 +603,166 @@ Built with ❤️ for the RISE ecosystem
         </Card>
 
         {/* Links */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+         {/* Core Features with HoverEffect */}
+         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+           <CardHeader>
+             <CardTitle className="text-2xl">Core Platform Features</CardTitle>
+             <CardDescription>
+               Discover the powerful features that make RISEDEX the premier DEX on RISE Network
+             </CardDescription>
+           </CardHeader>
+           <CardContent>
+             <HoverEffect
+               items={[
+                 {
+                   title: "Token Swapping",
+                   description: "Real-time token swaps with live pricing, slippage protection, and MEV resistance",
+                   link: "/swap",
+                 },
+                 {
+                   title: "Liquidity Pools",
+                   description: "Provide liquidity to earn trading fees and LP tokens with full position management",
+                   link: "/liquidity",
+                 },
+                 {
+                   title: "Analytics Dashboard",
+                   description: "Real-time on-chain analytics with volume, TVL, and historical chart data",
+                   link: "/analytics",
+                 },
+                 {
+                   title: "Portfolio Tracker",
+                   description: "Track token balances, LP positions, and transaction history in one place",
+                   link: "/portfolio",
+                 },
+                 {
+                   title: "Multi-hop Routing",
+                   description: "Intelligent routing through WETH for optimal swap paths and best prices",
+                   link: "/swap",
+                 },
+                 {
+                   title: "Price Alerts",
+                   description: "Set custom price alerts and get notified when tokens hit your target prices",
+                   link: "/portfolio",
+                 },
+               ]}
+             />
+           </CardContent>
+         </Card>
+ 
+         {/* Roadmap Section */}
+         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+           <CardHeader>
+             <CardTitle className="text-2xl">Development Roadmap</CardTitle>
+             <CardDescription>
+               Our vision for building the ultimate decentralized exchange on RISE Network
+             </CardDescription>
+           </CardHeader>
+           <CardContent>
+             <div className="space-y-0">
+               {/* Phase 1 */}
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true }}
+                 className="relative pl-8 pb-8 border-l-2 border-primary/30"
+               >
+                 <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-primary shadow-lg shadow-primary/50" />
+                 <div className="mb-2">
+                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium">
+                     <CheckCircle className="h-4 w-4" />
+                     Phase 1: Foundation
+                   </span>
+                 </div>
+                 <h3 className="text-lg font-semibold mb-2">Core DEX Infrastructure</h3>
+                 <ul className="space-y-2 text-muted-foreground">
+                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-success" /> Token swap functionality with Uniswap V2</li>
+                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-success" /> Liquidity pool management (Add/Remove)</li>
+                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-success" /> Real-time price charts and analytics</li>
+                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-success" /> Portfolio tracking and transaction history</li>
+                   <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-success" /> Multi-wallet support (MetaMask, OKX, Bitget)</li>
+                 </ul>
+               </motion.div>
+ 
+               {/* Phase 2 */}
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true }}
+                 transition={{ delay: 0.1 }}
+                 className="relative pl-8 pb-8 border-l-2 border-primary/30"
+               >
+                 <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-primary/50 border-2 border-primary" />
+                 <div className="mb-2">
+                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-chart-2/20 text-chart-2 text-sm font-medium">
+                     <Rocket className="h-4 w-4" />
+                     Phase 2: Enhancement
+                   </span>
+                 </div>
+                 <h3 className="text-lg font-semibold mb-2">Advanced Trading Features</h3>
+                 <ul className="space-y-2 text-muted-foreground">
+                   <li className="flex items-center gap-2"><Target className="h-4 w-4 text-chart-2" /> Limit orders and stop-loss functionality</li>
+                   <li className="flex items-center gap-2"><Target className="h-4 w-4 text-chart-2" /> Advanced charting with technical indicators</li>
+                   <li className="flex items-center gap-2"><Target className="h-4 w-4 text-chart-2" /> Token launchpad for new projects</li>
+                   <li className="flex items-center gap-2"><Target className="h-4 w-4 text-chart-2" /> Yield farming and staking rewards</li>
+                   <li className="flex items-center gap-2"><Target className="h-4 w-4 text-chart-2" /> Cross-chain bridge integration</li>
+                 </ul>
+               </motion.div>
+ 
+               {/* Phase 3 */}
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true }}
+                 transition={{ delay: 0.2 }}
+                 className="relative pl-8 pb-8 border-l-2 border-primary/30"
+               >
+                 <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-muted border-2 border-primary/50" />
+                 <div className="mb-2">
+                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-chart-3/20 text-chart-3 text-sm font-medium">
+                     <Users className="h-4 w-4" />
+                     Phase 3: Ecosystem
+                   </span>
+                 </div>
+                 <h3 className="text-lg font-semibold mb-2">Community & Governance</h3>
+                 <ul className="space-y-2 text-muted-foreground">
+                   <li className="flex items-center gap-2"><Globe className="h-4 w-4 text-chart-3" /> DAO governance with voting rights</li>
+                   <li className="flex items-center gap-2"><Globe className="h-4 w-4 text-chart-3" /> Revenue sharing for token holders</li>
+                   <li className="flex items-center gap-2"><Globe className="h-4 w-4 text-chart-3" /> NFT marketplace integration</li>
+                   <li className="flex items-center gap-2"><Globe className="h-4 w-4 text-chart-3" /> Social trading and copy trading</li>
+                   <li className="flex items-center gap-2"><Globe className="h-4 w-4 text-chart-3" /> Mobile app for iOS and Android</li>
+                 </ul>
+               </motion.div>
+ 
+               {/* Phase 4 */}
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true }}
+                 transition={{ delay: 0.3 }}
+                 className="relative pl-8"
+               >
+                 <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-muted border-2 border-muted-foreground" />
+                 <div className="mb-2">
+                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-chart-4/20 text-chart-4 text-sm font-medium">
+                     <Zap className="h-4 w-4" />
+                     Phase 4: Innovation
+                   </span>
+                 </div>
+                 <h3 className="text-lg font-semibold mb-2">Next-Generation Features</h3>
+                 <ul className="space-y-2 text-muted-foreground">
+                   <li className="flex items-center gap-2"><Code className="h-4 w-4 text-chart-4" /> AI-powered trading signals</li>
+                   <li className="flex items-center gap-2"><Code className="h-4 w-4 text-chart-4" /> Perpetual futures trading</li>
+                   <li className="flex items-center gap-2"><Code className="h-4 w-4 text-chart-4" /> Options trading platform</li>
+                   <li className="flex items-center gap-2"><Code className="h-4 w-4 text-chart-4" /> Institutional API and SDK</li>
+                   <li className="flex items-center gap-2"><Code className="h-4 w-4 text-chart-4" /> Multi-chain deployment</li>
+                 </ul>
+               </motion.div>
+             </div>
+           </CardContent>
+         </Card>
+ 
+         {/* Links */}
+         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl">Links & Resources</CardTitle>
           </CardHeader>

@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { TokenLogo } from '@/components/shared/TokenLogo';
 import { usePoolData } from '@/hooks/usePoolData';
 import { usePriceData } from '@/hooks/usePriceData';
+ import { NumberTicker } from '@/components/magicui/number-ticker';
+ import { GlowingStarsBackground } from '@/components/aceternity/glowing-stars';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('7d');
@@ -145,7 +147,11 @@ const Analytics = () => {
   const isLoading = poolsLoading || pricesLoading;
 
   return (
-    <div className="container px-4 py-8">
+     <div className="relative min-h-screen">
+       {/* Background Effects */}
+       <GlowingStarsBackground className="fixed inset-0 z-0" />
+       
+       <div className="relative z-10 container px-4 py-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
@@ -188,23 +194,26 @@ const Analytics = () => {
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { label: 'Volume (24h)', value: formatCurrency(stats.totalVolume), icon: DollarSign, change: 12.5, positive: true },
-          { label: 'Total TVL', value: formatCurrency(stats.totalTvl), icon: TrendingUp, change: 5.2, positive: true },
-          { label: 'Total Trades', value: formatNumber(stats.totalTrades), icon: Activity, change: 8.9, positive: true },
-          { label: 'Active Users', value: formatNumber(stats.activeUsers), icon: Users, change: 15.3, positive: true },
-          { label: 'Avg Trade', value: formatCurrency(stats.avgTradeSize), icon: Zap, change: -2.1, positive: false },
-          { label: 'Fees (24h)', value: formatCurrency(stats.totalFees), icon: DollarSign, change: 18.7, positive: true },
+           { label: 'Volume (24h)', value: stats.totalVolume, isCurrency: true, icon: DollarSign, change: 12.5, positive: true },
+           { label: 'Total TVL', value: stats.totalTvl, isCurrency: true, icon: TrendingUp, change: 5.2, positive: true },
+           { label: 'Total Trades', value: stats.totalTrades, isCurrency: false, icon: Activity, change: 8.9, positive: true },
+           { label: 'Active Users', value: stats.activeUsers, isCurrency: false, icon: Users, change: 15.3, positive: true },
+           { label: 'Avg Trade', value: stats.avgTradeSize, isCurrency: true, icon: Zap, change: -2.1, positive: false },
+           { label: 'Fees (24h)', value: stats.totalFees, isCurrency: true, icon: DollarSign, change: 18.7, positive: true },
         ].map((stat) => (
-          <Card key={stat.label} className="gradient-card border-border/50">
+           <Card key={stat.label} className="gradient-card border-border/50 overflow-hidden group hover:border-primary/30 transition-colors">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between mb-1">
-                <stat.icon className="h-4 w-4 text-primary" />
+                 <stat.icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                 <span className={`text-xs flex items-center gap-0.5 ${stat.positive ? 'text-success' : 'text-destructive'}`}>
                   {stat.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                   {Math.abs(stat.change)}%
                 </span>
               </div>
-              <div className="text-xl md:text-2xl font-bold text-glow">{stat.value}</div>
+               <div className="text-xl md:text-2xl font-bold text-glow">
+                 {stat.isCurrency && '$'}
+                 <NumberTicker value={stat.value} />
+               </div>
               <div className="text-xs text-muted-foreground truncate">{stat.label}</div>
             </CardContent>
           </Card>
@@ -513,7 +522,8 @@ const Analytics = () => {
         </Card>
       </div>
     </div>
-  );
-};
-
-export default Analytics;
+   </div>
+   );
+ };
+ 
+ export default Analytics;

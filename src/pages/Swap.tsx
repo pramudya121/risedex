@@ -1,27 +1,28 @@
-import { SwapCard } from '@/components/swap/SwapCard';
-import { MovingBorder } from '@/components/aceternity/moving-border';
-import { Spotlight } from '@/components/magicui/spotlight';
-import { Marquee } from '@/components/magicui/marquee';
-import { motion } from 'framer-motion';
-import { TOKEN_LIST } from '@/constants/tokens';
-import { usePriceData } from '@/hooks/usePriceData';
-import { TokenLogo } from '@/components/shared/TokenLogo';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-
-const Swap = () => {
-  const { prices } = usePriceData();
-
-  const priceItems = TOKEN_LIST.filter(t => !t.isNative).map(token => {
-    const priceData = prices[token.symbol];
-    return {
-      symbol: token.symbol,
-      price: priceData?.priceUSD || 0,
-      change: priceData?.change24h || 0,
-    };
-  });
-
-  return (
-    <Spotlight className="min-h-[calc(100vh-80px)] flex flex-col" spotlightColor="hsl(var(--primary)/0.1)">
+ import { SwapCard } from '@/components/swap/SwapCard';
+ import { MovingBorder } from '@/components/aceternity/moving-border';
+ import { Spotlight } from '@/components/magicui/spotlight';
+ import { Marquee } from '@/components/magicui/marquee';
+ import { motion } from 'framer-motion';
+ import { TOKEN_LIST } from '@/constants/tokens';
+ import { usePriceData } from '@/hooks/usePriceData';
+ import { TokenLogo } from '@/components/shared/TokenLogo';
+ import { TrendingUp, TrendingDown } from 'lucide-react';
+ 
+ const Swap = () => {
+   const { prices } = usePriceData();
+ 
+   const priceItems = TOKEN_LIST.filter(t => !t.isNative).map(token => {
+     const priceData = prices[token.symbol];
+     return {
+       symbol: token.symbol,
+       price: priceData?.priceUSD || 0,
+       change: priceData?.change24h || 0,
+     };
+   });
+ 
+   return (
+     <div className="relative min-h-[calc(100vh-80px)] flex flex-col overflow-hidden">
+       <Spotlight className="top-0 left-1/4" fill="hsl(var(--primary))" />
       {/* Price Ticker Marquee */}
       <div className="border-b border-border/30 bg-muted/20 backdrop-blur-sm">
         <Marquee speed="slow" pauseOnHover className="py-2">
@@ -51,8 +52,8 @@ const Swap = () => {
           </MovingBorder>
         </motion.div>
       </div>
-    </Spotlight>
-  );
-};
+     </div>
+   );
+ };
 
 export default Swap;
