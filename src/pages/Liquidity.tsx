@@ -11,6 +11,8 @@ import { useAccount } from 'wagmi';
 import { useAppStore } from '@/stores/useAppStore';
 import { useLiquidity } from '@/hooks/useLiquidity';
 import { formatUnits } from 'viem';
+ import { TextGenerateEffect } from '@/components/aceternity/text-generate-effect';
+ import { motion } from 'framer-motion';
 
 const Liquidity = () => {
   const { isConnected, address } = useAccount();
@@ -171,12 +173,24 @@ const Liquidity = () => {
 
   return (
     <div className="container px-4 py-8 max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Liquidity</h1>
-        <p className="text-muted-foreground">
+       <motion.div
+         initial={{ opacity: 0, y: 20 }}
+         animate={{ opacity: 1, y: 0 }}
+         className="text-center mb-8"
+       >
+         <TextGenerateEffect
+           words="Liquidity"
+           className="text-3xl font-bold mb-2"
+         />
+         <motion.p
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           transition={{ delay: 0.5 }}
+           className="text-muted-foreground"
+         >
           Add or remove liquidity to earn trading fees
-        </p>
-      </div>
+         </motion.p>
+       </motion.div>
 
       <Tabs defaultValue="add" className="w-full">
         <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
