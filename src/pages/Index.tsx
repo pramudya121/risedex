@@ -16,7 +16,7 @@ const Index = () => {
     const priceData = prices[token.symbol];
     return {
       symbol: token.symbol,
-      price: priceData?.price || 0,
+      price: priceData?.priceUSD || 0,
       change: priceData?.change24h || 0,
     };
   });
